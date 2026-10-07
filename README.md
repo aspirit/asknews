@@ -48,6 +48,7 @@ uv run asknews migrate
 uv run asknews ingest fed-presconf --limit 5
 uv run asknews ingest boj-kaiken --since 2026
 uv run asknews ingest feeds --days 7
+uv run asknews topics                    # topic membership for the rankings
 uv run asknews embed                     # the hashing stand-in: no model download
 ASKNEWS_LLM=scripted uv run uvicorn asknews.api.app:app --reload
 ```
@@ -66,6 +67,7 @@ and are skipped when it is unset.
 | `asknews ingest fed-presconf` / `fed-releases` | Federal Reserve press conferences; statements, minutes, speeches |
 | `asknews ingest boj-kaiken` / `boj-releases` / `boj-videos` | Bank of Japan press conferences; statements, minutes, opinions, outlook, speeches; YouTube videos |
 | `asknews ingest feeds` | Other publishers' RSS feeds (configured in `domain/feeds.yaml`) |
+| `asknews topics` | Tag documents with the topics they mention (`domain/topics.yaml`) |
 | `asknews embed` | Embed segments that lack a vector |
 | `asknews summarize` / `asknews briefs daily` / `asknews briefs meetings` | Generated summaries, translations and briefs |
 | `asknews daily` | All of the above, incrementally, for a scheduled run |

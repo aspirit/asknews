@@ -47,6 +47,7 @@ ask ingest boj-kaiken              # press conference summaries since 2011
 ask ingest boj-releases            # statements, minutes, opinions, outlook, speeches
 ask ingest boj-videos              # attach YouTube videos (feed: latest only; API key: all)
 ask ingest feeds --days 10         # ECB, BIS, BEA, MOF, FSA, BoE
+ask topics                         # topic membership for the rankings
 ask embed                          # all segments through the embedding service
 ask briefs meetings --limit 20     # meeting briefs, newest first
 ask briefs daily --days 7
@@ -76,8 +77,8 @@ sudo systemctl daemon-reload && sudo systemctl enable --now asknews-daily.timer
 systemctl list-timers asknews-daily.timer
 ```
 
-The job fetches this year's publications from every source, embeds new
-segments, writes briefs for the last three days and for up to three
+The job fetches this year's publications from every source, tags and embeds
+new documents, writes briefs for the last three days and for up to three
 meetings, and summarises up to forty documents. Its log is in
 `journalctl -u asknews-daily.service`.
 

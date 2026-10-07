@@ -23,7 +23,7 @@ from asknews.api.app import create_app
 from asknews.api.deps import Runtime
 from asknews.db.connection import Connection, connect
 from asknews.db.migrate import migrate
-from asknews.domain_config import load_speakers
+from asknews.domain_config import load_speakers, load_topics
 from asknews.embed.base import HashEmbedder
 from asknews.embed.worker import embed_pending
 from asknews.ingest.store import (
@@ -37,6 +37,7 @@ from asknews.ingest.store import (
 )
 from asknews.retrieval.gate import load_vocabulary
 from asknews.settings import Settings
+from asknews.topics import tag_pending
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -140,6 +141,7 @@ def seed_archive(db: Connection) -> dict[str, int]:
     )
     replace_segments(db, ids["minutes"], [Segment(0, "Participants discussed the labor market.")])
     embed_pending(db, HashEmbedder())
+    tag_pending(db, load_topics(REPO_ROOT / "domain" / "topics.yaml"))
     return ids
 
 

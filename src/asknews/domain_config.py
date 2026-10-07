@@ -7,6 +7,9 @@ stays free of names and the configuration can be edited without a release.
 
 from __future__ import annotations
 
+import hashlib
+import json
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from functools import lru_cache
@@ -101,3 +104,40 @@ def load_speakers(path: Path) -> SpeakerDirectory:
 @lru_cache(maxsize=1)
 def speakers() -> SpeakerDirectory:
     return load_speakers(get_settings().domain_dir / "speakers.yaml")
+
+
+@dataclass(frozen=True, slots=True)
+class Topic:
+    slug: str
+    label: dict[str, str]
+    terms: dict[str, list[str]]
+
+
+def load_topics(path: Path) -> tuple[Topic, ...]:
+    raw = yaml.safe_load(path.read_text("utf-8")) or {}
+    return tuple(
+        Topic(
+            slug=str(t["slug"]),
+            label={str(k): str(v) for k, v in (t.get("label") or {}).items()},
+            terms={str(k): [str(x) for x in v or []] for k, v in (t.get("terms") or {}).items()},
+        )
+        for t in raw.get("topics") or []
+    )
+
+
+def topics_version(candidates: Sequence[Topic]) -> str:
+    """A short hash of the slugs and terms; labels do not take part.
+
+    Documents tagged under another version are tagged again, so editing a
+    term list is enough to refresh the rankings.
+    """
+    payload = [
+        [t.slug, sorted(term for terms in t.terms.values() for term in terms)] for t in candidates
+    ]
+    digest = hashlib.sha256(json.dumps(payload, ensure_ascii=True).encode()).hexdigest()
+    return digest[:12]
+
+
+@lru_cache(maxsize=1)
+def topics() -> tuple[Topic, ...]:
+    return load_topics(get_settings().domain_dir / "topics.yaml")

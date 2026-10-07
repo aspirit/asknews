@@ -4,14 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
-import yaml
-
 from asknews.db.connection import Connection
-from asknews.settings import get_settings
+from asknews.domain_config import Topic, topics
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,13 +30,6 @@ class InstitutionRank:
 
 
 @dataclass(frozen=True, slots=True)
-class Topic:
-    slug: str
-    label: dict[str, str]
-    terms: dict[str, list[str]]
-
-
-@dataclass(frozen=True, slots=True)
 class TopicRank:
     topic: Topic
     documents: int
@@ -49,23 +38,6 @@ class TopicRank:
     @property
     def change(self) -> int:
         return self.documents - self.previous
-
-
-def load_topics(path: Path) -> list[Topic]:
-    raw = yaml.safe_load(path.read_text("utf-8")) or {}
-    return [
-        Topic(
-            slug=str(t["slug"]),
-            label={str(k): str(v) for k, v in (t.get("label") or {}).items()},
-            terms={str(k): [str(x) for x in v or []] for k, v in (t.get("terms") or {}).items()},
-        )
-        for t in raw.get("topics") or []
-    ]
-
-
-@lru_cache(maxsize=1)
-def topics() -> list[Topic]:
-    return load_topics(get_settings().domain_dir / "topics.yaml")
 
 
 def speakers(conn: Connection, *, days: int | None = 90, limit: int = 12) -> list[SpeakerRank]:
@@ -129,32 +101,29 @@ def institutions(conn: Connection, *, days: int = 30) -> list[InstitutionRank]:
 
 
 def topic_ranks(conn: Connection, *, days: int = 90) -> list[TopicRank]:
-    """Documents per topic in the period and in the period before it, in one scan."""
+    """Documents per topic in the period and in the period before it.
+
+    Reads ``document_topics``, which ``asknews topics`` fills from the term
+    list, so this is a group-by rather than a scan of document bodies.
+    """
     now = datetime.now(UTC)
     start = now - timedelta(days=days)
     previous_start = start - timedelta(days=days)
-    selected = [t for t in topics() if any(t.terms.values())]
-    if not selected:
-        return []
-    columns: list[str] = []
-    params: list[Any] = []
-    for index, topic in enumerate(selected):
-        patterns = [f"%{term}%" for lang_terms in topic.terms.values() for term in lang_terms]
-        match = "(d.title ILIKE ANY(%s) OR d.body ILIKE ANY(%s))"
-        columns.append(
-            f"count(*) FILTER (WHERE d.published_at >= %s AND {match}) AS current_{index}, "
-            f"count(*) FILTER (WHERE d.published_at < %s AND {match}) AS previous_{index}"
-        )
-        params += [start, patterns, patterns, start, patterns, patterns]
-    row = conn.execute(
-        f"SELECT {', '.join(columns)} FROM documents d "
-        "WHERE d.published_at >= %s AND d.published_at < %s",
-        [*params, previous_start, now],
-    ).fetchone()
+    rows = conn.execute(
+        """
+        SELECT t.topic,
+               count(*) FILTER (WHERE d.published_at >= %s) AS in_period,
+               count(*) FILTER (WHERE d.published_at < %s) AS before_period
+          FROM document_topics t JOIN documents d ON d.id = t.document_id
+         WHERE d.published_at >= %s AND d.published_at < %s
+         GROUP BY t.topic
+        """,
+        (start, start, previous_start, now),
+    ).fetchall()
+    counts = {str(r["topic"]): (int(r["in_period"]), int(r["before_period"])) for r in rows}
     ranks = [
-        TopicRank(topic, int(row[f"current_{i}"]), int(row[f"previous_{i}"]))
-        if row
-        else TopicRank(topic, 0, 0)
-        for i, topic in enumerate(selected)
+        TopicRank(topic, *counts.get(topic.slug, (0, 0)))
+        for topic in topics()
+        if any(topic.terms.values())
     ]
     return sorted(ranks, key=lambda r: (-r.documents, r.topic.slug))

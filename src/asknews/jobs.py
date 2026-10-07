@@ -1,4 +1,4 @@
-"""The scheduled job: fetch what is new, embed it, write briefs and summaries.
+"""The scheduled job: fetch what is new, tag and embed it, write briefs and summaries.
 
 Run once a day (``asknews daily``). Each step is the same CLI command a
 person would run by hand, with its own log line; a failing step does not
@@ -27,6 +27,7 @@ def steps(year: int, *, summaries: int) -> list[tuple[str, list[str]]]:
         ("boj releases", ["ingest", "boj-releases", *since]),
         ("boj videos", ["ingest", "boj-videos"]),
         ("feeds", ["ingest", "feeds", "--days", "10"]),
+        ("topics", ["topics"]),
         ("embed", ["embed"]),
         ("daily briefs", ["briefs", "daily", "--days", "3"]),
         ("meeting briefs", ["briefs", "meetings", "--limit", "3"]),

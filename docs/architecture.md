@@ -20,6 +20,7 @@ publishers --ingest--> documents / segments --embed--> segment_embeddings
 | `asknews.retrieval` | Query analysis, lexical and dense candidate paths, reciprocal-rank fusion with boosts, and the domain gate. |
 | `asknews.answer` | Prompting, the Claude client, reply checking, request logging and the guards (budget, rate). |
 | `asknews.archive` | Read-side queries: lists, detail, meetings assembled from documents, rankings, briefs. |
+| `asknews.topics` | Tags each document once with the topics whose terms it contains, so the rankings read a small table. |
 | `asknews.generate` | Summaries with translations, and daily and meeting briefs. |
 | `asknews.api`, `asknews.web` | FastAPI application: JSON endpoints under `/api`, Jinja2 pages, static files, locales. |
 | `domain/` | Everything that names the real world: speakers, gate vocabulary, topics, feeds, featured videos, sample questions, evaluation cases. |
@@ -32,6 +33,9 @@ language, generated tsvector) -> `segment_embeddings` (one vector per segment,
 with the model name). `media` attaches a provider video to a document;
 `speakers` names the principal speaker; `document_translations`, `briefs`
 and `ask_requests` hold generated content and usage.
+
+`document_topics` holds each document's topics, computed once from the
+term list and refreshed when that list changes.
 
 Policy meetings are not a table. They are read off the documents: the
 Federal Reserve's statement, press conference and minutes share the
