@@ -4,9 +4,25 @@ Bilingual question answering over the public communications of central banks.
 
 The archive covers what the Federal Reserve publishes in English and what the
 Bank of Japan publishes in Japanese: press conference videos and transcripts,
-policy statements, meeting minutes, speeches and outlook reports. Ask a question
-in either language and get an answer built only from retrieved passages, each
-one cited back to the official document or to a moment in the video.
+policy statements, meeting minutes, speeches and outlook reports, plus the
+release feeds of the ECB, the BIS, the U.S. BEA and Japan's Ministry of
+Finance and Financial Services Agency. Ask a question in either language and
+get an answer built only from retrieved passages, each one cited back to the
+official document or to a moment in the video.
+
+## What it does
+
+- **Ask.** Hybrid retrieval (full text, Japanese substring matching, exact
+  phrases, dense vectors) over 90,000 passages; a cited answer whose every
+  citation is checked against the passages; refusals for questions outside
+  the archive; a daily spend budget and per-client rate limits.
+- **Archive.** Latest releases, every press conference with its transcript
+  (timestamped where the publisher provides captions), policy meetings
+  assembled from the documents each one produced, rankings of speakers,
+  publishers and topics computed from the material itself, and briefs.
+- **Two languages.** English or Japanese interface; documents stay in their
+  original language with a badge; generated titles, summaries and briefs are
+  labelled as such.
 
 ## Principles
 
@@ -14,17 +30,12 @@ one cited back to the official document or to a moment in the video.
   and the answer may only use what was retrieved.
 - **Declines out of scope.** Questions unrelated to the archive are refused
   rather than answered from general knowledge.
-- **Hybrid retrieval.** Lexical search handles rare terms and exact phrases;
-  dense retrieval handles paraphrase and cross-language questions.
 - **No re-hosting of video.** Official players are embedded and transcripts
   link to timestamps where the source provides them.
+- **Generated content is labelled.** Nothing produced by a model is shown as
+  the publisher's own text.
 
-## Status
-
-Early development. The repository is being built up in small, reviewable
-steps; see the commit history for what exists so far.
-
-## Development
+## Quick start
 
 Requirements: [uv](https://docs.astral.sh/uv/), Python 3.13 (uv installs it
 on demand) and Docker for the local PostgreSQL instance.
@@ -32,15 +43,57 @@ on demand) and Docker for the local PostgreSQL instance.
 ```sh
 uv sync --all-groups
 cp .env.example .env
-docker compose up -d --wait        # PostgreSQL 17 with pgvector
-uv run python -m asknews.db.migrate
-make check
+docker compose up -d --wait              # PostgreSQL 17 with pgvector
+uv run asknews migrate
+uv run asknews ingest fed-presconf --limit 5
+uv run asknews ingest boj-kaiken --since 2026
+uv run asknews ingest feeds --days 7
+uv run asknews embed                     # the hashing stand-in: no model download
+ASKNEWS_LLM=scripted uv run uvicorn asknews.api.app:app --reload
 ```
 
-`make check` runs lint, type checks and tests. Database-backed tests use
-`TEST_DATABASE_URL` from `.env.example` and are skipped when it is unset.
+Open <http://127.0.0.1:8000>. With `ASKNEWS_LLM=scripted` the Ask page
+returns a canned answer over real retrieved sources; set `ANTHROPIC_API_KEY`
+and drop the variable for real answers. `make check` runs lint, type checks
+and tests; database-backed tests use `TEST_DATABASE_URL` from `.env.example`
+and are skipped when it is unset.
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `asknews migrate` | Apply pending SQL migrations |
+| `asknews ingest fed-presconf` / `fed-releases` | Federal Reserve press conferences; statements, minutes, speeches |
+| `asknews ingest boj-kaiken` / `boj-releases` / `boj-videos` | Bank of Japan press conferences; statements, minutes, opinions, outlook, speeches; YouTube videos |
+| `asknews ingest feeds` | Other publishers' RSS feeds (configured in `domain/feeds.yaml`) |
+| `asknews embed` | Embed segments that lack a vector |
+| `asknews summarize` / `asknews briefs daily` / `asknews briefs meetings` | Generated summaries, translations and briefs |
+| `asknews daily` | All of the above, incrementally, for a scheduled run |
+| `asknews eval` | Retrieval regression cases in `domain/eval_cases.yaml` |
+
+## Configuration
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `DATABASE_URL` | required | PostgreSQL with pgvector |
+| `ASKNEWS_EMBEDDER` | `hash` | `hash` (stand-in), `remote` (embedding service), `local` (in-process model) |
+| `ASKNEWS_EMBED_URL` | `http://127.0.0.1:8201` | Embedding service when `remote` |
+| `ASKNEWS_LLM` | `claude` | `claude` or `scripted` |
+| `ASKNEWS_LLM_MODEL` | `claude-opus-5-5` | Model for answers |
+| `ASKNEWS_SUMMARY_MODEL` | `claude-sonnet-5-5` | Model for summaries and briefs |
+| `ASKNEWS_DAILY_BUDGET_USD` | `3` | Stop answering when the day's estimated spend reaches this |
+| `ASKNEWS_CLIENT_SALT` | `change-me` | Salt for the daily client hash used in rate limiting |
+| `ANTHROPIC_API_KEY` | | Read by the Anthropic SDK |
+| `YOUTUBE_API_KEY` | | Optional; without it only the channel feed's latest videos are attached |
+
+## Documentation
+
+- [docs/architecture.md](docs/architecture.md): components, data model, retrieval, answering, design choices
+- [docs/data-sources.md](docs/data-sources.md): every publisher, how it is accessed, and its terms
+- [docs/pages.md](docs/pages.md): what each page shows
+- [docs/deployment.md](docs/deployment.md): one-host deployment with Docker Compose and nginx
 
 ## License
 
-MIT. Source documents remain under the terms of their publishers; those terms
-are documented alongside each ingestion module.
+MIT. Source documents remain under the terms of their publishers, recorded
+in [docs/data-sources.md](docs/data-sources.md).
