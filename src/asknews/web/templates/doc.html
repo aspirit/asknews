@@ -32,7 +32,7 @@
       </div>
       {% else %}
       <div class="qas">{% for b in blocks %}
-        <div class="ql{{ ' a' if b.speaker != 'Question' else '' }}" id="s{{ b.first + 1 }}">{% for n in b.anchors %}<span id="s{{ n + 1 }}"></span>{% endfor %}<span class="qk">{{ t('doc.question') if b.speaker == 'Question' else t('doc.answer') }}</span><div><div class="sp">{{ t('doc.reporter') if b.speaker == 'Question' else (doc.speaker_in(lang) if b.speaker == doc.speaker else (b.speaker or '')) }}</div>{% for text in b.texts %}<p>{{ text }}</p>{% endfor %}</div></div>{% endfor %}
+        <div class="ql{{ ' a' if b.speaker != 'Question' else '' }}" id="s{{ b.first + 1 }}"><span class="qk">{{ t('doc.question') if b.speaker == 'Question' else t('doc.answer') }}</span><div><div class="sp">{{ t('doc.reporter') if b.speaker == 'Question' else (doc.speaker_in(lang) if b.speaker == doc.speaker else (b.speaker or '')) }}</div>{% for text in b.texts %}{% if loop.index0 > 0 %}<span id="s{{ b.anchors[loop.index0 - 1] + 1 }}"></span>{% endif %}<p>{{ text }}</p>{% endfor %}</div></div>{% endfor %}
       </div>
       {% endif %}
       {% else %}

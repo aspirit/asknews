@@ -68,6 +68,28 @@ def test_document_pages(api: Api) -> None:
     assert 'data-seek="14"' in presser
     assert "Chair Powell" in presser
     assert "player.js" in presser
+    # A merged answer block keeps two grid cells; anchors sit inside the body.
+    with client.app.state.runtime.pool.connection() as conn:  # type: ignore[attr-defined]
+        from asknews.ingest.store import Segment, replace_segments
+
+        replace_segments(
+            conn,
+            ids["minutes"],
+            [
+                Segment(0, "First question?", speaker="Question"),
+                Segment(1, "First part of the answer.", speaker="Kazuo Ueda"),
+                Segment(2, "Second part of the answer.", speaker="Kazuo Ueda"),
+            ],
+        )
+        conn.execute(
+            "INSERT INTO media (document_id, provider, provider_id) VALUES (%s, 'youtube', 'x')",
+            (ids["minutes"],),
+        )
+    grouped = client.get(f"/doc/{ids['minutes']}").text
+    answer = re.search(r'<div class="ql a" id="s2">(.*?)</div></div>', grouped, re.S)
+    assert answer is not None
+    assert answer.group(1).startswith('<span class="qk">')  # the marker is the first cell
+    assert '<span id="s3"></span><p>Second part' in answer.group(1)  # the anchor is inside the body
     statement = client.get(f"/doc/{ids['statement']}").text
     assert "Full text" in statement
     assert "player.js" not in statement
