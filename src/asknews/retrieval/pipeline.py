@@ -36,7 +36,8 @@ def retrieve(
 ) -> Retrieval:
     query = analyse(question, directory, vocab=vocab)
     named = mentions_domain(query, vocab, directory)
-    lexical = paths.lexical(conn, query)
+    found = paths.lexical(conn, query)
+    lexical = found.candidates
     semantic = paths.semantic(conn, embedder, query) if (named or lexical) else []
     merged = merge_candidates(lexical, semantic)
     passages = paths.hydrate(conn, [c.segment_id for c in merged])
@@ -44,10 +45,14 @@ def retrieve(
 
     strongest_terms = max((c.scores.get("terms", 0.0) for c in lexical), default=0.0)
     phrase_hits = any("phrase" in c.ranks for c in lexical)
-    fulltext_hits = sum(1 for c in lexical if "fulltext" in c.ranks)
-    # A quoted phrase that exists in the archive is about the archive by definition.
+    # A quoted phrase found in the archive, a passage containing every content
+    # term, or several Japanese terms in one passage: the question is about the
+    # archive even if it names nothing in the vocabulary.
     in_domain = (
-        named or phrase_hits or strongest_terms >= STRONG_LEXICAL_TERMS or fulltext_hits >= 5
+        named
+        or phrase_hits
+        or strongest_terms >= STRONG_LEXICAL_TERMS
+        or found.strict_fulltext >= 1
     )
     meta = {
         "lang": query.lang,
@@ -66,6 +71,7 @@ def retrieve(
         ),
         "named_domain": named,
         "lexical": len(lexical),
+        "strict_fulltext": found.strict_fulltext,
         "semantic": len(semantic),
     }
     return Retrieval(query, citations if in_domain else [], in_domain, meta)

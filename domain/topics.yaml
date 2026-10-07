@@ -1,0 +1,44 @@
+# Topics for the rankings board and document tags. A document carries a
+# topic when its title or text contains one of the terms (case-insensitive
+# for Latin script). Labels are shown in the interface language.
+topics:
+  - slug: policy-rate
+    label: {en: Policy rate, ja: 政策金利}
+    terms:
+      en: [federal funds rate, target range, policy rate, rate hike, rate cut, basis point]
+      ja: [政策金利, 利上げ, 利下げ, 誘導目標, 無担保コールレート]
+  - slug: inflation
+    label: {en: Inflation, ja: 物価}
+    terms:
+      en: [inflation, price stability, pce, consumer prices, cpi]
+      ja: [物価, インフレ, 消費者物価, 物価安定]
+  - slug: fx
+    label: {en: Yen & FX, ja: 為替}
+    terms:
+      en: [exchange rate, yen, dollar, currency]
+      ja: [為替, 円安, 円高, 為替介入]
+  - slug: outlook
+    label: {en: Outlook & projections, ja: 見通し}
+    terms:
+      en: [projections, outlook, forecast, summary of economic projections]
+      ja: [見通し, 展望レポート, 経済見通し, 先行き]
+  - slug: votes
+    label: {en: Votes & dissent, ja: 票決・反対}
+    terms:
+      en: [voting against, dissent, voting for the monetary policy action]
+      ja: [反対, 賛成多数, 全員一致]
+  - slug: balance-sheet
+    label: {en: Balance sheet, ja: バランスシート}
+    terms:
+      en: [balance sheet, securities holdings, runoff, quantitative tightening, asset purchases]
+      ja: [バランスシート, 国債買入れ, 資産買入れ, 保有国債]
+  - slug: labor
+    label: {en: Labour market, ja: 雇用・賃金}
+    terms:
+      en: [labor market, unemployment, employment, job gains, wages]
+      ja: [雇用, 賃金, 賃上げ, 春闘, 労働市場]
+  - slug: financial-stability
+    label: {en: Financial stability, ja: 金融システム}
+    terms:
+      en: [financial stability, financial conditions, bank capital, stress test]
+      ja: [金融システム, 金融機関, 金融環境, 金融安定]

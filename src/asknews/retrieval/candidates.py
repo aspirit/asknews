@@ -39,6 +39,7 @@ def _window_sql(query: Query) -> tuple[str, list[Any]]:
 class _Collector:
     def __init__(self) -> None:
         self.found: dict[int, Candidate] = {}
+        self.strict_fulltext = 0  # passages matching every content term
 
     def add(self, path: str, rows: list[dict[str, Any]], *, offset: int = 0) -> None:
         for rank, row in enumerate(rows, start=offset + 1):
@@ -83,6 +84,8 @@ def _fulltext(conn: Connection, query: Query, out: _Collector) -> None:
             [joiner.join(terms), *params, LEXICAL_LIMIT],
         ).fetchall()
         out.add("fulltext", rows, offset=0 if joiner == " " else out.count("fulltext"))
+        if joiner == " ":
+            out.strict_fulltext = len(rows)
         if out.count("fulltext") >= FULLTEXT_AND_MIN or len(terms) < 2:
             break
 
@@ -108,7 +111,13 @@ def _terms(conn: Connection, query: Query, out: _Collector) -> None:
     out.add("terms", rows)
 
 
-def lexical(conn: Connection, query: Query) -> list[Candidate]:
+@dataclass(slots=True)
+class Lexical:
+    candidates: list[Candidate]
+    strict_fulltext: int  # English passages matching every content term
+
+
+def lexical(conn: Connection, query: Query) -> Lexical:
     """Exact phrases in any language, then full text (English) or terms (Japanese)."""
     out = _Collector()
     if query.phrases:
@@ -117,7 +126,7 @@ def lexical(conn: Connection, query: Query) -> list[Candidate]:
         _fulltext(conn, query, out)
     elif query.terms:
         _terms(conn, query, out)
-    return list(out.found.values())
+    return Lexical(list(out.found.values()), out.strict_fulltext)
 
 
 def semantic(conn: Connection, embedder: Embedder, query: Query) -> list[Candidate]:
