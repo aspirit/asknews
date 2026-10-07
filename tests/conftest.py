@@ -79,8 +79,13 @@ def seed_archive(db: Connection) -> dict[str, int]:
             "Federal Reserve issues FOMC statement",
             datetime(2025, 9, 17, 18, tzinfo=UTC),
             "https://fed.test/statement",
-            body="the Committee decided to lower the target range for the federal funds rate "
-            "by 1/4 percentage point to 4 to 4-1/4 percent.",
+            body=(
+                "Recent indicators suggest that growth of economic activity moderated in the "
+                "first half of the year. Job gains have slowed, and the unemployment rate has "
+                "edged up but remains low. Inflation has moved up and remains somewhat elevated. "
+                "In support of its goals, the Committee decided to lower the target range for "
+                "the federal funds rate by 1/4 percentage point to 4 to 4-1/4 percent."
+            ),
         ),
     )
     replace_segments(

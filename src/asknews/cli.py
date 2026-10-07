@@ -33,8 +33,11 @@ def build_parser() -> argparse.ArgumentParser:
     migrate.set_defaults(func=_migrate)
 
     from asknews.embed import worker
+    from asknews.generate import briefs, summaries
 
     worker.add_cli(commands)
+    summaries.add_cli(commands)
+    briefs.add_cli(commands)
 
     ingest = commands.add_parser("ingest", help="fetch publications into the archive")
     sources = ingest.add_subparsers(dest="source", required=True)

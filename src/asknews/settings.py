@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     )
     llm_model: str = Field(default="claude-opus-5-5", validation_alias="ASKNEWS_LLM_MODEL")
     llm_effort: str = Field(default="low", validation_alias="ASKNEWS_LLM_EFFORT")
+    summary_model: str = Field(
+        default="claude-sonnet-5-5",
+        validation_alias="ASKNEWS_SUMMARY_MODEL",
+        description="Model for bulk generation: document summaries, translations and briefs.",
+    )
     daily_budget_usd: float = Field(default=3.0, validation_alias="ASKNEWS_DAILY_BUDGET_USD")
     client_salt: str = Field(
         default="change-me",
