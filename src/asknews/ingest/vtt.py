@@ -3,6 +3,11 @@
 Only what caption files from the sources use is supported: an optional
 header block, cues with ``start --> end`` lines (settings after the end
 time are ignored), multi-line cue text, and inline tags such as ``<c>``.
+
+Runs of two or more spaces inside a cue are kept as exactly two. Caption
+encoders leave a double space where they dropped a glyph they could not
+carry, and a caller holding the published transcript can fill the gap
+(see ``asknews.ingest.fed.captions``).
 """
 
 from __future__ import annotations
@@ -16,7 +21,8 @@ _TIMING = re.compile(
     r"(?P<end>\d{1,2}:\d{2}(?::\d{2})?(?:\.\d{1,3})?)"
 )
 _TAG = re.compile(r"<[^>]+>")
-_SPACE = re.compile(r"\s+")
+_GAP = re.compile(r" {2,}")
+_OTHER_SPACE = re.compile(r"[^\S ]+")  # tabs, newlines, no-break spaces
 _LINE_MARKER = re.compile(r"^\s*(?:-|>>)\s+")  # speaker-change dashes some caption files use
 
 
@@ -56,8 +62,8 @@ def parse_vtt(text: str) -> list[Cue]:
         match = _TIMING.match(lines[timing_index].strip())
         if match is None:
             raise VttError(f"bad timing line: {lines[timing_index]!r}")
-        raw = " ".join(_LINE_MARKER.sub("", line) for line in lines[timing_index + 1 :])
-        clean = _SPACE.sub(" ", html.unescape(_TAG.sub("", raw))).strip()
+        raw = " ".join(_LINE_MARKER.sub("", line).strip() for line in lines[timing_index + 1 :])
+        clean = _GAP.sub("  ", _OTHER_SPACE.sub(" ", html.unescape(_TAG.sub("", raw)))).strip()
         if clean:
             cues.append(Cue(parse_timestamp(match["start"]), parse_timestamp(match["end"]), clean))
     return cues

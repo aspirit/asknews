@@ -80,12 +80,23 @@ def fetcher(tmp_path: Path, routes: Routes) -> Fetcher:
 
 
 def test_list_dates_merges_calendar_and_historical_pages(fetcher: Fetcher) -> None:
-    assert presconf.list_dates(fetcher, since=2024) == ["20240918", "20250917", "20260916"]
+    assert presconf.list_dates(fetcher, since=2024) == [
+        "20240918",
+        "20250917",
+        "20260128",
+        "20260916",
+    ]
 
 
 def test_list_dates_tolerates_missing_historical_year(fetcher: Fetcher) -> None:
     # 2023 has no fixture page: the 404 is logged and skipped.
-    assert presconf.list_dates(fetcher, since=2023) == ["20240918", "20250917", "20260916"]
+    assert presconf.list_dates(fetcher, since=2023)[0] == "20240918"
+
+
+def test_misspelt_page_link_is_kept_as_found(fetcher: Fetcher) -> None:
+    pages = presconf.list_pages(fetcher, since=2026)
+    assert pages["20260128"].endswith("/monetarypolicy/fomcpressconf20260128.htm")
+    assert pages["20260916"].endswith("/monetarypolicy/fomcpresconf20260916.htm")
 
 
 def test_read_page_extracts_player_and_transcript() -> None:

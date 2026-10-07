@@ -46,9 +46,14 @@ class Media:
     duration_sec: int | None = None
 
 
+# The hyphen and the non-breaking hyphen fold to the plain one, so a rate
+# range reads and matches the same however a statement was typeset.
+_HYPHENS = str.maketrans({chr(0x2010): "-", chr(0x2011): "-"})
+
+
 def clean_text(value: str | None) -> str | None:
     """PostgreSQL text cannot hold NUL bytes; some PDF and HTML sources leak them."""
-    return value.replace(chr(0), "") if value is not None else None
+    return value.replace(chr(0), "").translate(_HYPHENS) if value is not None else None
 
 
 def institution_id(conn: Connection, code: str) -> int:

@@ -29,6 +29,9 @@ ROUTES = {
     "https://www.federalreserve.gov/monetarypolicy/fomcminutes20250917.htm": fixture(
         "minutes20250917.html"
     ),
+    "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20250917.htm": fixture(
+        "projections20250917.html"
+    ),
     "https://www.federalreserve.gov/newsevents/speech/miran20251215a.htm": fixture(
         "speech_miran20251215a.html"
     ),
@@ -49,9 +52,35 @@ def fetcher(tmp_path: Path) -> Fetcher:
     )
 
 
-def test_statements_and_minutes_are_listed_from_calendar_pages(fetcher: Fetcher) -> None:
-    found = releases.list_statements_and_minutes(fetcher, since=2025)
-    assert [(r.kind, r.date) for r in found] == [("minutes", "20250917"), ("statement", "20250917")]
+def test_calendar_releases_include_minutes_release_dates_and_projections(
+    fetcher: Fetcher,
+) -> None:
+    found = releases.list_calendar_releases(fetcher, since=2025)
+    assert [(r.kind, r.date) for r in found] == [
+        ("minutes", "20250917"),
+        ("projections", "20250917"),
+        ("statement", "20250917"),
+    ]
+    assert found[0].released == "20251008"
+    assert found[2].released is None
+
+
+def test_projection_table_becomes_median_lines() -> None:
+    article = releases.read_projections(fixture("projections20250917.html"))
+    assert article.title == "Summary of Economic Projections"
+    gdp = next(p for p in article.paragraphs if p.startswith("Change in real GDP"))
+    assert gdp == "Change in real GDP: 2026 2.3; 2027 2.4; 2028 2.2; 2029 2.1; Longer run 2.0"
+    assert not any(p.startswith("June projection") for p in article.paragraphs)
+
+
+def test_release_date_prefers_calendar_then_page_then_meeting_day() -> None:
+    minutes = releases.Release("minutes", "u", "20250917", "20250917", released="20251008")
+    assert releases.release_date(minutes, "").date().isoformat() == "2025-10-08"
+    unlisted = releases.Release("minutes", "u", "20250917", "20250917")
+    page = "<p>Last Update: October 9, 2025</p>"
+    assert releases.release_date(unlisted, page).date().isoformat() == "2025-10-09"
+    statement = releases.Release("statement", "u", "20250917", "20250917")
+    assert releases.release_date(statement, page).isoformat() == "2025-09-17T18:00:00+00:00"
 
 
 def test_speeches_are_listed_per_year_without_duplicates(fetcher: Fetcher) -> None:
@@ -97,7 +126,7 @@ def test_split_speaker() -> None:
 def test_ingest_statement_minutes_and_speech(db: Connection, fetcher: Fetcher) -> None:
     migrate(db)
     directory = load_speakers(REPO_ROOT / "domain" / "speakers.yaml")
-    items = releases.list_statements_and_minutes(fetcher, since=2025) + releases.list_speeches(
+    items = releases.list_calendar_releases(fetcher, since=2025) + releases.list_speeches(
         fetcher, since=2025
     )
     outcomes = {}
@@ -109,7 +138,7 @@ def test_ingest_statement_minutes_and_speech(db: Connection, fetcher: Fetcher) -
     rows = {
         r["kind"]: r
         for r in db.execute(
-            "SELECT d.kind, d.title, d.external_id, s.slug, s.role, "
+            "SELECT d.kind, d.title, d.external_id, d.published_at, d.meta, s.slug, s.role, "
             "(SELECT count(*) FROM segments WHERE document_id = d.id) AS n "
             "FROM documents d LEFT JOIN speakers s ON s.id = d.speaker_id"
         ).fetchall()
@@ -119,6 +148,9 @@ def test_ingest_statement_minutes_and_speech(db: Connection, fetcher: Fetcher) -
         rows["minutes"]["title"]
         == "Minutes of the Federal Open Market Committee, September 16-17, 2025"
     )
+    assert rows["minutes"]["published_at"].date().isoformat() == "2025-10-08"
+    assert rows["report"]["title"] == "Summary of Economic Projections, September 17, 2025"
+    assert rows["report"]["meta"]["subkind"] == "projections"
     assert rows["speech"]["external_id"] == "miran20251215a"
     assert (rows["speech"]["slug"], rows["speech"]["role"]) == ("miran", "Governor")
     assert all(row["n"] >= 1 for row in rows.values())

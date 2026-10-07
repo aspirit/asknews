@@ -18,11 +18,14 @@ from dataclasses import dataclass
 from asknews.ingest.store import Segment
 from asknews.ingest.vtt import Cue
 
-# Two to four capitalised words followed by a period or colon.
+# Two to four capitalised words (or initials) followed by a period or colon.
 # Requiring at least two words keeps acronyms at sentence ends ("...the
-# FOMC. We ...") from being read as speakers.
+# FOMC. We ...") from being read as speakers, and a period may only end an
+# initial, so an outlet named just before a label ("CNBC. STEVE LIESMAN.")
+# is not swept into it.
+_NAME_WORD = r"(?:[A-Z][A-Z'\-]+|[A-Z]\.)"
 _SPEAKER_LABEL = re.compile(
-    r"(?:^|(?<=\s))((?:[A-Z][A-Z'.\-]+)(?: [A-Z][A-Z'.\-]+){1,3})[.:]\s+(?=\S)"
+    r"(?:^|(?<=\s))(" + _NAME_WORD + r"(?: " + _NAME_WORD + r"){1,3})[.:]\s+(?=\S)"
 )
 _SENTENCE_END = re.compile(r"(?:(?<=[.!?])|(?<=[.!?][\"')\]]))\s+(?=[A-Z\"'(\[])")
 _MIN_PREFACE_CHARS = 300

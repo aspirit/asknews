@@ -79,6 +79,7 @@ def test_nul_bytes_are_removed_before_writing() -> None:
     from asknews.ingest.store import clean_text
 
     assert clean_text("a" + chr(0) + "b") == "ab"
+    assert clean_text("3" + chr(0x2011) + "1/2 to 3" + chr(0x2010) + "3/4") == "3-1/2 to 3-3/4"
     assert clean_text(None) is None
 
 

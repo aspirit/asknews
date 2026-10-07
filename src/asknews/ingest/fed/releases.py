@@ -1,9 +1,11 @@
-"""FOMC statements, meeting minutes and Board speeches.
+"""FOMC statements, meeting minutes, projection materials and Board speeches.
 
-All three are ordinary article pages: the text sits in ``div#article`` with
-the date in ``p.article__time`` and, for speeches, the speaker in
-``p.speaker``. Statements and minutes are listed on the FOMC calendar pages;
-speeches have one index page per year.
+Statements, minutes and speeches are ordinary article pages: the text sits
+in ``div#article`` with the date in ``p.article__time`` and, for speeches,
+the speaker in ``p.speaker``. The projection materials page is a set of
+tables, of which Table 1 (the medians) is kept as text. Statements, minutes
+and projections are listed on the FOMC calendar pages, which also give the
+release date of each set of minutes; speeches have one index page per year.
 """
 
 from __future__ import annotations
@@ -12,6 +14,7 @@ import argparse
 import logging
 import re
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -20,7 +23,13 @@ from asknews.db.connection import Connection, connect
 from asknews.domain_config import SpeakerDirectory, speakers
 from asknews.ingest.fed import BASE_URL, INSTITUTION
 from asknews.ingest.fed.presconf import CALENDARS_URL, HISTORICAL_URL
-from asknews.ingest.htmltext import content_window, drop_boilerplate, pack_paragraphs, paragraphs
+from asknews.ingest.htmltext import (
+    content_window,
+    drop_boilerplate,
+    pack_paragraphs,
+    paragraphs,
+    table_rows,
+)
 from asknews.ingest.http import Fetcher, FetchError
 from asknews.ingest.store import (
     Document,
@@ -34,10 +43,19 @@ from asknews.settings import get_settings
 LOG = logging.getLogger(__name__)
 
 SPEECHES_INDEX_URL = BASE_URL + "/newsevents/speech/{year}-speeches.htm"
-KINDS = ("statement", "minutes", "speech")
+KINDS = ("statement", "minutes", "projections", "speech")
+# Board publications go out in the Washington afternoon; the hour keeps the
+# calendar date right in every time zone the interface shows.
+RELEASE_HOUR_UTC = 18
 
 _STATEMENT = re.compile(r"/newsevents/pressreleases/monetary(\d{8})a\.htm")
 _MINUTES = re.compile(r"/monetarypolicy/fomcminutes(\d{8})\.htm")
+_RELEASED = re.compile(
+    r"fomcminutes(\d{8})\.htm[^(]{0,160}\(Released ([A-Z][a-z]+ \d{1,2}, \d{4})\)", re.S
+)
+_PROJECTIONS = re.compile(r"/monetarypolicy/fomcprojtabl(\d{8})\.htm")
+_LAST_UPDATE = re.compile(r"Last Update:\s*([A-Z][a-z]+ \d{1,2}, \d{4})")
+_YEAR = re.compile(r"\d{4}")
 _SPEECH = re.compile(r"/newsevents/speech/([a-z]+)(\d{8})([a-z])\.htm")
 _TITLE = re.compile(r"<h3[^>]*class=['\"]title['\"][^>]*>(.*?)</h3>", re.S)
 _ANY_H3 = re.compile(r"<h3[^>]*>(.*?)</h3>", re.S)
@@ -71,7 +89,8 @@ class Release:
     kind: str
     url: str
     external_id: str
-    date: str  # YYYYMMDD
+    date: str  # YYYYMMDD, the meeting or speech date
+    released: str | None = None  # YYYYMMDD when the calendar gives a later release date
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,7 +114,12 @@ def _strip(markup: str) -> str:
     return re.sub(r"\s+", " ", _TAGS.sub("", markup)).strip()
 
 
-def list_statements_and_minutes(fetcher: Fetcher, *, since: int) -> list[Release]:
+def _ymd(text: str) -> str:
+    return datetime.strptime(text, "%B %d, %Y").strftime("%Y%m%d")
+
+
+def list_calendar_releases(fetcher: Fetcher, *, since: int) -> list[Release]:
+    """Statements, minutes and projection materials from the FOMC calendar pages."""
     pages = [fetcher.get(CALENDARS_URL).text]
     years = {
         int(d[:4]) for page in pages for d in _STATEMENT.findall(page) + _MINUTES.findall(page)
@@ -108,12 +132,18 @@ def list_statements_and_minutes(fetcher: Fetcher, *, since: int) -> list[Release
             LOG.warning("no historical page for %s: %s", year, exc)
     releases: dict[tuple[str, str], Release] = {}
     for page in pages:
+        released = {date: _ymd(text) for date, text in _RELEASED.findall(page)}
         for date in _STATEMENT.findall(page):
             path = f"/newsevents/pressreleases/monetary{date}a.htm"
             releases[("statement", date)] = Release("statement", BASE_URL + path, date, date)
         for date in _MINUTES.findall(page):
             path = f"/monetarypolicy/fomcminutes{date}.htm"
-            releases[("minutes", date)] = Release("minutes", BASE_URL + path, date, date)
+            releases[("minutes", date)] = Release(
+                "minutes", BASE_URL + path, date, date, released=released.get(date)
+            )
+        for date in _PROJECTIONS.findall(page):
+            path = f"/monetarypolicy/fomcprojtabl{date}.htm"
+            releases[("projections", date)] = Release("projections", BASE_URL + path, date, date)
     return sorted(
         (r for r in releases.values() if int(r.date[:4]) >= since), key=lambda r: (r.date, r.kind)
     )
@@ -153,6 +183,43 @@ def read_article(markup: str) -> Article:
     return Article(title, date, speaker, location, body)
 
 
+def projection_lines(rows: Sequence[Sequence[str]]) -> list[str]:
+    """Table 1 as one line per variable with its median projections.
+
+    The header row of years is shared by the median, central tendency and
+    range groups; only the medians are kept. Comparison rows from the
+    previous round ("June projection") are left out.
+    """
+    years_at = next((i for i, row in enumerate(rows) if row and _YEAR.fullmatch(row[0])), None)
+    if years_at is None:
+        return []
+    header = rows[years_at]
+    width = len(header) // 3 or len(header)
+    years = header[:width]
+    lines: list[str] = []
+    for row in rows[years_at + 1 :]:
+        if len(row) < 1 + width or row[0].lower().endswith("projection"):
+            continue
+        values = [(y, v) for y, v in zip(years, row[1 : 1 + width], strict=True) if v]
+        if values:
+            lines.append(f"{row[0]}: " + "; ".join(f"{y} {v}" for y, v in values))
+    return lines
+
+
+def read_projections(markup: str) -> Article:
+    """The projection materials page: its introduction and Table 1 as text."""
+    window = content_window(
+        markup, start=['id="content"'], end=['id="lastUpdate"', "id='lastUpdate'", "<footer"]
+    )
+    table_at = window.find("<table")
+    intro_markup = window[:table_at] if table_at > 0 else window
+    intro = [p for p in paragraphs(intro_markup) if len(p) > 60 and "materials" not in p]
+    rows = table_rows(window[table_at:]) if table_at > 0 else []
+    return Article(
+        "Summary of Economic Projections", None, None, None, [*intro, *projection_lines(rows)]
+    )
+
+
 def split_speaker(text: str) -> tuple[str | None, str]:
     """``Governor Stephen I. Miran`` -> ``("Governor", "Stephen I. Miran")``."""
     match = _ROLE.match(text.strip())
@@ -178,6 +245,22 @@ def _speaker_id(
     return upsert_speaker(conn, institution=INSTITUTION, slug=url_surname, name=name, role=role)
 
 
+def release_date(release: Release, markup: str) -> datetime:
+    """When the item was published.
+
+    Minutes appear three weeks after the meeting: the calendar's release
+    date is used, else the page's "Last Update" line. Everything else is
+    dated by the meeting or speech day.
+    """
+    ymd = release.released
+    if ymd is None and release.kind == "minutes":
+        found = _LAST_UPDATE.search(markup)
+        ymd = _ymd(found.group(1)) if found else None
+    return datetime.strptime(ymd or release.date, "%Y%m%d").replace(
+        hour=RELEASE_HOUR_UTC, tzinfo=UTC
+    )
+
+
 def _minutes_title(article: Article) -> str:
     # The h3 is generic; the meeting dates sit in the first paragraph's bold lead.
     if article.paragraphs:
@@ -195,11 +278,23 @@ def ingest_release(
     directory: SpeakerDirectory,
     refresh: bool = False,
 ) -> Outcome:
-    article = read_article(fetcher.get(release.url, refresh=refresh).text)
+    markup = fetcher.get(release.url, refresh=refresh).text
+    article = read_projections(markup) if release.kind == "projections" else read_article(markup)
     if not article.paragraphs:
         raise ValueError(f"{release.url}: no article text found")
-    title = _minutes_title(article) if release.kind == "minutes" else article.title
-    published_at = datetime.strptime(release.date, "%Y%m%d").replace(tzinfo=UTC)
+    kind = "report" if release.kind == "projections" else release.kind
+    meta: dict[str, Any] = {}
+    if release.kind == "minutes":
+        title = _minutes_title(article)
+    elif release.kind == "projections":
+        when = datetime.strptime(release.date, "%Y%m%d")
+        title = f"{article.title}, {when:%B} {when.day}, {when.year}"
+        meta["subkind"] = "projections"
+    else:
+        title = article.title
+    if article.location:
+        meta["location"] = article.location
+    published_at = release_date(release, markup)
     url_surname = _SPEECH.search(release.url)
     speaker_id = (
         _speaker_id(conn, directory, article, url_surname.group(1))
@@ -210,14 +305,14 @@ def ingest_release(
         conn,
         Document(
             institution=INSTITUTION,
-            kind=release.kind,
+            kind=kind,
             lang="en",
             external_id=release.external_id,
             title=title or f"{release.kind} {release.date}",
             published_at=published_at,
             source_url=release.url,
             body="\n\n".join(article.paragraphs),
-            meta={k: v for k, v in {"location": article.location}.items() if v},
+            meta=meta,
             speaker_id=speaker_id,
         ),
     )
@@ -232,9 +327,9 @@ def run(args: argparse.Namespace) -> int:
     kinds = set(args.kinds)
     with Fetcher(settings.data_dir / "raw") as fetcher, connect(autocommit=True) as conn:
         releases: list[Release] = []
-        if kinds & {"statement", "minutes"}:
+        if kinds & {"statement", "minutes", "projections"}:
             releases += [
-                r for r in list_statements_and_minutes(fetcher, since=args.since) if r.kind in kinds
+                r for r in list_calendar_releases(fetcher, since=args.since) if r.kind in kinds
             ]
         if "speech" in kinds:
             releases += list_speeches(fetcher, since=args.since)
@@ -261,7 +356,7 @@ def run(args: argparse.Namespace) -> int:
 
 def add_cli(subparsers: Any) -> None:
     parser = subparsers.add_parser(
-        "fed-releases", help="FOMC statements, meeting minutes and Board speeches"
+        "fed-releases", help="FOMC statements, minutes, projection materials and Board speeches"
     )
     parser.add_argument("--kinds", nargs="+", choices=KINDS, default=list(KINDS))
     parser.add_argument("--since", type=int, default=2011, help="first year to include")

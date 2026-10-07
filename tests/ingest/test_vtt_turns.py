@@ -85,6 +85,28 @@ def test_caption_line_markers_are_stripped() -> None:
     assert parse_vtt(doc)[0].text == "Good afternoon. I am pleased to join you."
 
 
+def test_double_space_marks_a_dropped_glyph() -> None:
+    doc = "WEBVTT\n\n00:01.000 --> 00:02.000\nto 3  to 4 percent,\nin support\n"
+    assert parse_vtt(doc)[0].text == "to 3  to 4 percent, in support"
+
+
+def test_outlet_named_before_a_label_is_not_part_of_it() -> None:
+    doc = [
+        Cue(
+            0,
+            1,
+            "MICHELLE SMITH. Steve Liesman, CNBC. STEVE LIESMAN. Thank you. "
+            "We read the SEP. MICHELLE SMITH. Last question. J. SMITH. Next question.",
+        )
+    ]
+    assert [t.speaker for t in speaker_turns(doc)] == [
+        "Michelle Smith",
+        "Steve Liesman",
+        "Michelle Smith",
+        "J. Smith",
+    ]
+
+
 def test_colon_after_speaker_label_is_accepted() -> None:
     doc = [Cue(0, 1, "CHAIRMAN BERNANKE: Good afternoon. Before we get to questions, a summary.")]
     turns = speaker_turns(doc)

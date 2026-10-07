@@ -19,6 +19,7 @@ from typing import Any
 from asknews.db.connection import Connection, connect
 from asknews.domain_config import SpeakerDirectory, speakers
 from asknews.ingest.fed import BASE_URL, INSTITUTION
+from asknews.ingest.fed.captions import repair_cues
 from asknews.ingest.http import Fetched, Fetcher, FetchError
 from asknews.ingest.pdf import pdf_text
 from asknews.ingest.store import (
@@ -43,7 +44,9 @@ PLAYER_URL = "https://players.brightcove.net/{account}/default_default/index.min
 PLAYBACK_URL = "https://edge.api.brightcove.com/playback/v1/accounts/{account}/videos/{video_id}"
 FIRST_YEAR = 2011  # the first FOMC press conference was held in April 2011
 
-_DATE = re.compile(r"fomcpresconf(\d{8})\.htm")
+# One page is linked under a misspelt name on the Board's site ("pressconf"), so
+# the link is kept as found instead of being rebuilt from the date.
+_PAGE_LINK = re.compile(r"(/monetarypolicy/fomcpress?conf(\d{8})\.htm)")
 _VIDEO_TAG = re.compile(r"<video\b[^>]*>", re.IGNORECASE)
 _ATTR = re.compile(r'(data-video-id|data-account)="(\d+)"')
 _TRANSCRIPT = re.compile(r'href="(/mediacenter/files/FOMCpresconf\d{8}\.pdf)"')
@@ -87,20 +90,30 @@ class Outcome:
     timestamped: bool
 
 
-def list_dates(fetcher: Fetcher, *, since: int = FIRST_YEAR) -> list[str]:
-    """Dates (``YYYYMMDD``) of every press conference page, oldest first.
+def list_pages(fetcher: Fetcher, *, since: int = FIRST_YEAR) -> dict[str, str]:
+    """Press conference page URLs by date (``YYYYMMDD``), oldest first.
 
     The calendars page lists recent years; older years live on one
     historical page per year.
     """
-    dates = set(_DATE.findall(fetcher.get(CALENDARS_URL).text))
-    earliest_listed = min((int(d[:4]) for d in dates), default=datetime.now(UTC).year)
+    pages: dict[str, str] = {}
+
+    def collect(markup: str) -> None:
+        for path, date in _PAGE_LINK.findall(markup):
+            pages.setdefault(date, BASE_URL + path)
+
+    collect(fetcher.get(CALENDARS_URL).text)
+    earliest_listed = min((int(d[:4]) for d in pages), default=datetime.now(UTC).year)
     for year in range(since, earliest_listed):
         try:
-            dates.update(_DATE.findall(fetcher.get(HISTORICAL_URL.format(year=year)).text))
+            collect(fetcher.get(HISTORICAL_URL.format(year=year)).text)
         except FetchError as exc:
             LOG.warning("no historical page for %s: %s", year, exc)
-    return sorted(d for d in dates if int(d[:4]) >= since)
+    return {date: pages[date] for date in sorted(pages) if int(date[:4]) >= since}
+
+
+def list_dates(fetcher: Fetcher, *, since: int = FIRST_YEAR) -> list[str]:
+    return list(list_pages(fetcher, since=since))
 
 
 def read_page(html: str) -> PageInfo:
@@ -208,6 +221,17 @@ def _speaker_id(
     return upsert_speaker(conn, institution=INSTITUTION, slug=slug, name=surname, role=role)
 
 
+def _transcript(fetcher: Fetcher, page: PageInfo) -> str | None:
+    """The transcript PDF's text, used to repair the captions; absent when not published."""
+    if page.transcript_url is None:
+        return None
+    try:
+        return pdf_text(fetcher.get(page.transcript_url).content)
+    except FetchError as exc:
+        LOG.warning("transcript unavailable, captions kept as published: %s", exc)
+        return None
+
+
 def _title(video: Video, date: str) -> str:
     if video.name:
         return video.name
@@ -222,13 +246,14 @@ def ingest_press_conference(
     *,
     directory: SpeakerDirectory,
     refresh: bool = False,
+    page_url: str | None = None,
 ) -> Outcome:
-    page_url = PAGE_URL.format(date=date)
+    page_url = page_url or PAGE_URL.format(date=date)
     page = read_page(fetcher.get(page_url, refresh=refresh).text)
     video, captions = _video(fetcher, page, refresh=refresh)
 
     if captions is not None:
-        cues = parse_vtt(captions.text)
+        cues = repair_cues(parse_vtt(captions.text), _transcript(fetcher, page))
         segments = segment_cues(cues)
         body = " ".join(c.text for c in cues)
         timestamped = True
@@ -275,14 +300,20 @@ def run(args: argparse.Namespace) -> int:
         Fetcher(settings.data_dir / "raw") as fetcher,
         connect(autocommit=True) as conn,
     ):
-        dates = args.dates or list_dates(fetcher, since=args.since)
+        pages = list_pages(fetcher, since=args.since)
+        dates = args.dates or list(pages)
         if args.limit:
             dates = dates[-args.limit :]
         failures = 0
         for date in dates:
             try:
                 outcome = ingest_press_conference(
-                    conn, fetcher, date, directory=directory, refresh=args.refresh
+                    conn,
+                    fetcher,
+                    date,
+                    directory=directory,
+                    refresh=args.refresh,
+                    page_url=pages.get(date),
                 )
             except (FetchError, PageError) as exc:
                 failures += 1

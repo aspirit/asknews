@@ -78,6 +78,52 @@ class _ParagraphParser(HTMLParser):
             self.paragraphs.append(text)
 
 
+class _TableParser(HTMLParser):
+    """Cells of the first table in a fragment, row by row."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.rows: list[list[str]] = []
+        self._row: list[str] | None = None
+        self._cell: list[str] | None = None
+        self._depth = 0
+        self._done = False
+
+    def handle_starttag(self, tag: str, _attrs: list[tuple[str, str | None]]) -> None:
+        if self._done:
+            return
+        if tag == "table":
+            self._depth += 1
+        elif tag == "tr" and self._depth:
+            self._row = []
+        elif tag in ("td", "th") and self._row is not None:
+            self._cell = []
+
+    def handle_endtag(self, tag: str) -> None:
+        if self._done:
+            return
+        if tag in ("td", "th") and self._cell is not None and self._row is not None:
+            self._row.append(_SPACE.sub(" ", "".join(self._cell)).strip())
+            self._cell = None
+        elif tag == "tr" and self._row is not None:
+            self.rows.append(self._row)
+            self._row = None
+        elif tag == "table" and self._depth:
+            self._depth -= 1
+            self._done = self._depth == 0
+
+    def handle_data(self, data: str) -> None:
+        if self._cell is not None:
+            self._cell.append(data)
+
+
+def table_rows(markup: str) -> list[list[str]]:
+    """The cells of the first table in ``markup``, one list per row."""
+    parser = _TableParser()
+    parser.feed(markup)
+    return parser.rows
+
+
 def paragraphs(markup: str) -> list[str]:
     """Block-level text runs of ``markup``, whitespace-normalised, in order."""
     parser = _ParagraphParser()
