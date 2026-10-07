@@ -22,7 +22,8 @@ def fixture(name: str) -> str:
 
 ROUTES = {
     releases.RELEASES_INDEX_URL.format(year=2026): fixture("mpr_2026_index.html"),
-    releases.SCHEDULE_INDEX_URL.format(year=2025): fixture("minu_2025_index.html"),
+    releases.MINUTES_INDEX_URL.format(year=2025): fixture("minu_2025_index.html"),
+    releases.OPINIONS_INDEX_URL.format(year=2025): fixture("opinion_2025_index.html"),
     releases.OUTLOOK_INDEX_URL: fixture("outlook_index.html"),
     releases.SPEECHES_INDEX_URL.format(year=2026): fixture("koen_2026_index.html"),
     "https://www.boj.or.jp/about/press/koen_2026/ko261006a.htm": fixture("ko261006a.html"),
@@ -65,18 +66,33 @@ def test_release_index_distinguishes_statements(fetcher: Fetcher) -> None:
     assert statement.published == date(2026, 9, 18)
 
 
-def test_schedule_yields_minutes_and_opinions_with_year_rollover(fetcher: Fetcher) -> None:
-    items = releases.list_schedule(fetcher, since=2025)
+def test_minutes_and_opinions_carry_publication_and_meeting_dates(fetcher: Fetcher) -> None:
+    items = releases.list_minutes_and_opinions(fetcher, since=2025)
     by_stem = {i.stem: i for i in items}
     assert by_stem["g251219"].published == date(2026, 1, 27)  # December meeting, January minutes
-    assert by_stem["opi251219"].published == date(2025, 12, 26)
+    assert by_stem["g251219"].meeting == "12月18、19日開催分"
     assert by_stem["g250501"].published == date(2025, 6, 20)
-    assert by_stem["g251219"].meeting == "12月18日（木）・19日（金）"
+    assert (by_stem["opi251219"].kind, by_stem["opi251219"].published) == (
+        "opinions",
+        date(2025, 12, 26),
+    )
 
 
 def test_outlook_lists_basic_view_only(fetcher: Fetcher) -> None:
     items = releases.list_outlook(fetcher, since=2026)
     assert [(i.stem, i.title) for i in items] == [("gor2607a", "2026年7月（基本的見解）")]
+
+
+def test_speech_pdf_link_variants() -> None:
+    assert (
+        releases.speech_pdf_url('<a href="/about/press/koen_2026/data/ko260206a1.pdf">全文</a>')
+        is not None
+    )
+    assert (
+        releases.speech_pdf_url('<a href="/about/press/koen_2026/data/ko261006a.pdf">全文</a>')
+        is not None
+    )
+    assert releases.speech_pdf_url("<p>no pdf</p>") is None
 
 
 def test_speeches_carry_speaker_text(fetcher: Fetcher) -> None:

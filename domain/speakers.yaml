@@ -136,6 +136,28 @@ boj:
     name_ja: 中村豊明
     role: Board Member
     match: [Nakamura, 中村]
+    tenure: {from: "2020-07-01", to: "2025-06-30"}
+  - slug: nakamura-s
+    name: Seiji Nakamura
+    name_ja: 中村清次
+    role: Board Member
+    match: [Nakamura, 中村]
+    tenure: {from: "2006-04-25", to: "2011-04-24"}
+  - slug: kamezaki
+    name: Hidetoshi Kamezaki
+    name_ja: 亀崎英敏
+    role: Board Member
+    match: [Kamezaki, 亀崎]
+  - slug: noda
+    name: Tadao Noda
+    name_ja: 野田忠男
+    role: Board Member
+    match: [Noda, 野田]
+  - slug: suda
+    name: Miyako Suda
+    name_ja: 須田美矢子
+    role: Board Member
+    match: [Suda, 須田]
   - slug: kataoka
     name: Goushi Kataoka
     name_ja: 片岡剛士

@@ -3,8 +3,8 @@
 Everything here is a PDF reached from a yearly index page:
 
 * statements and operational notices from the monetary policy releases index;
-* minutes and the Summary of Opinions from the yearly meeting schedule, which
-  also carries each meeting's dates;
+* minutes and the Summary of Opinions from their yearly indexes, whose rows
+  give the publication date and the meeting dates;
 * the Outlook Report's basic view from the outlook index;
 * speeches, whose index rows name the speaker and whose pages link the PDF.
 """
@@ -26,11 +26,12 @@ from asknews.ingest.boj import (
     BASE_URL,
     INSTITUTION,
     clean_title,
+    normalise,
     pack_ja,
     parse_ja_date,
-    parse_month_day,
     pdf_paragraphs,
 )
+from asknews.ingest.htmltext import content_window, paragraphs
 from asknews.ingest.http import Fetcher, FetchError
 from asknews.ingest.pdf import pdf_text
 from asknews.ingest.store import (
@@ -45,7 +46,8 @@ from asknews.settings import get_settings
 LOG = logging.getLogger(__name__)
 
 RELEASES_INDEX_URL = BASE_URL + "/mopo/mpmdeci/mpr_{year}/index.htm"
-SCHEDULE_INDEX_URL = BASE_URL + "/mopo/mpmsche_minu/minu_{year}/index.htm"
+MINUTES_INDEX_URL = BASE_URL + "/mopo/mpmsche_minu/minu_{year}/index.htm"
+OPINIONS_INDEX_URL = BASE_URL + "/mopo/mpmsche_minu/opinion_{year}/index.htm"
 OUTLOOK_INDEX_URL = BASE_URL + "/mopo/outlook/index.htm"
 SPEECHES_INDEX_URL = BASE_URL + "/about/press/koen_{year}/index.htm"
 FIRST_YEAR = 2011
@@ -62,7 +64,7 @@ _MINUTES = re.compile(r"/mopo/mpmsche_minu/minu_\d{4}/(g\d{6})\.pdf$")
 _OPINIONS = re.compile(r"/mopo/mpmsche_minu/opinion_\d{4}/(opi\d{6})\.pdf$")
 _OUTLOOK = re.compile(r"/mopo/outlook/(gor(\d{2})(\d{2})a)\.pdf$")
 _SPEECH_PAGE = re.compile(r"/about/press/koen_\d{4}/(ko\d{6}[a-z])\.htm$")
-_SPEECH_PDF = re.compile(r"href=\"(/about/press/koen_\d{4}/data/ko\d{6}[a-z]\.pdf)\"")
+_SPEECH_PDF = re.compile(r"href=\"(/about/press/koen_\d{4}/data/ko\d{6}[a-z]\d?\.pdf)\"")
 _SPEECH_ROW = re.compile(
     r"<td>([^<]*)</td>\s*<td><a href=\"(/about/press/koen_\d{4}/ko\d{6}[a-z]\.htm)\""
     r"[^>]*>(.*?)</a>",
@@ -120,47 +122,36 @@ def list_releases(fetcher: Fetcher, *, since: int) -> list[Item]:
     return items
 
 
-def list_schedule(fetcher: Fetcher, *, since: int) -> list[Item]:
-    """Minutes and Summaries of Opinions from the yearly meeting schedule."""
+def list_minutes_and_opinions(fetcher: Fetcher, *, since: int) -> list[Item]:
+    """Minutes and Summaries of Opinions from their yearly indexes. Each row
+    carries the publication date and the meeting dates the document covers."""
     items: list[Item] = []
+    sources = (
+        ("minutes", MINUTES_INDEX_URL, _MINUTES),
+        ("opinions", OPINIONS_INDEX_URL, _OPINIONS),
+    )
     for year in range(since, datetime.now(UTC).year + 1):
-        try:
-            page = fetcher.get(SCHEDULE_INDEX_URL.format(year=year)).text
-        except FetchError as exc:
-            LOG.warning("no schedule index for %s: %s", year, exc)
-            continue
-        for row in _ROW.findall(page):
-            links = [(path, _text(text)) for path, text in _CELL_LINK.findall(row)]
-            if not links:
+        for kind, template, pattern in sources:
+            try:
+                page = fetcher.get(template.format(year=year)).text
+            except FetchError as exc:
+                LOG.warning("no %s index for %s: %s", kind, year, exc)
                 continue
-            meeting_text = links[0][1]
-            meeting_date = parse_month_day(meeting_text, posted=date(year, 12, 31))
-            for path, text in links:
-                for kind, pattern in (("minutes", _MINUTES), ("opinions", _OPINIONS)):
-                    match = pattern.search(path)
-                    if match is None:
-                        continue
-                    published = _publication_date(text, meeting_date, year)
-                    items.append(
-                        Item(
-                            kind,
-                            match.group(1),
-                            BASE_URL + path,
-                            "",
-                            published,
-                            meeting=meeting_text,
-                        )
+            for posted_text, path, meeting_html in _DATED_ROW.findall(page):
+                match = pattern.search(path)
+                if match is None:
+                    continue
+                items.append(
+                    Item(
+                        kind,
+                        match.group(1),
+                        BASE_URL + path,
+                        "",
+                        parse_ja_date(html.unescape(posted_text)),
+                        meeting=_text(meeting_html),
                     )
+                )
     return items
-
-
-def _publication_date(text: str, meeting: date | None, year: int) -> date | None:
-    """``6月19日（金）`` for a meeting in April is in the same year; ``1月27日``
-    for a December meeting is in the next."""
-    published = parse_month_day(text, posted=date(year, 12, 31))
-    if published and meeting and published < meeting:
-        return published.replace(year=year + 1)
-    return published
 
 
 def list_outlook(fetcher: Fetcher, *, since: int) -> list[Item]:
@@ -207,8 +198,15 @@ def list_speeches(fetcher: Fetcher, *, since: int) -> list[Item]:
 
 
 def speech_pdf_url(page_markup: str) -> str | None:
+    """The full-text PDF linked from a speech page (the first PDF; charts follow)."""
     match = _SPEECH_PDF.search(page_markup)
     return BASE_URL + match.group(1) if match else None
+
+
+def html_body(page_markup: str) -> str:
+    """Article paragraphs of a page, one per line, normalised."""
+    window = content_window(page_markup, start=["<main"], end=["</main>"])
+    return "\n".join(normalise(p) for p in paragraphs(window))
 
 
 def _speaker_id(conn: Connection, directory: SpeakerDirectory, text: str, when: date) -> int | None:
@@ -238,17 +236,23 @@ def ingest_item(
 ) -> Outcome:
     pdf_url = item.url
     page_date: date | None = None
+    paragraphs: list[str]
     if item.kind == "speech":
         page = fetcher.get(item.url, refresh=refresh).text
-        found = speech_pdf_url(page)
-        if found is None:
-            raise ValueError(f"{item.url}: no PDF linked from the speech page")
-        pdf_url = found
         page_date = parse_ja_date(_text(page))
-    text = pdf_text(fetcher.get(pdf_url, refresh=refresh).content)
-    paragraphs = pdf_paragraphs(text)
+        found = speech_pdf_url(page)
+        if found is not None:
+            pdf_url = found
+            text = pdf_text(fetcher.get(pdf_url, refresh=refresh).content)
+            paragraphs = pdf_paragraphs(text)
+        else:  # some speeches are published as page text only
+            text = html_body(page)
+            paragraphs = [p for p in text.split("\n") if p]
+    else:
+        text = pdf_text(fetcher.get(pdf_url, refresh=refresh).content)
+        paragraphs = pdf_paragraphs(text)
     if not paragraphs:
-        raise ValueError(f"{pdf_url}: no text layer")
+        raise ValueError(f"{pdf_url}: no text found")
 
     published = item.published or page_date or parse_ja_date(text[:600])
     if published is None:
@@ -273,7 +277,9 @@ def ingest_item(
         if item.kind == "speech" and item.speaker_text
         else None
     )
-    meta: dict[str, Any] = {"pdf_url": pdf_url}
+    meta: dict[str, Any] = (
+        {"pdf_url": pdf_url} if pdf_url != item.url or item.kind != "speech" else {}
+    )
     if item.kind in ("opinions", "outlook"):
         meta["subkind"] = item.kind
     if item.meeting:
@@ -307,7 +313,9 @@ def run(args: argparse.Namespace) -> int:
         if kinds & {"statement", "release"}:
             items += [i for i in list_releases(fetcher, since=args.since) if i.kind in kinds]
         if kinds & {"minutes", "opinions"}:
-            items += [i for i in list_schedule(fetcher, since=args.since) if i.kind in kinds]
+            items += [
+                i for i in list_minutes_and_opinions(fetcher, since=args.since) if i.kind in kinds
+            ]
         if "outlook" in kinds:
             items += list_outlook(fetcher, since=args.since)
         if "speech" in kinds:
