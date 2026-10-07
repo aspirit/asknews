@@ -3,7 +3,8 @@
 The project is bilingual at the product level but monolingual at the code
 level: source, comments, documentation and commit messages are English, and
 every user-facing Japanese or other non-ASCII string lives in a locale file,
-a domain configuration file or a test fixture. Keeping that boundary sharp
+a domain configuration file, a test fixture, or a parser for a Japanese
+source (and that parser's tests). Keeping that boundary sharp
 means a reviewer never has to guess which strings reach users.
 """
 
@@ -14,9 +15,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-# Directories whose files may contain non-ASCII text.
+# Directories whose files may contain non-ASCII text. Parsers for Japanese
+# publications legitimately carry the Japanese markers they look for.
 LOCALIZED_PREFIXES = (
     "src/asknews/locales/",
+    "src/asknews/ingest/boj/",
+    "tests/ingest/boj/",
     "domain/",
     "tests/fixtures/",
 )

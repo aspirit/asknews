@@ -77,6 +77,9 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["ARG001"]  # fixtures are injected by name and may go unused
+# Parsers for Japanese sources, and their tests, deliberately contain full-width punctuation.
+"src/asknews/ingest/boj/**" = ["RUF001", "RUF002", "RUF003"]
+"tests/ingest/boj/**" = ["RUF001", "RUF002", "RUF003", "ARG001"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["asknews"]
