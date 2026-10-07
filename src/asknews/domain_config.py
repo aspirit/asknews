@@ -138,16 +138,53 @@ def topics_version(candidates: Sequence[Topic]) -> str:
     return digest[:12]
 
 
-def load_meeting_statement_titles(path: Path) -> dict[str, tuple[str, ...]]:
+@dataclass(frozen=True, slots=True)
+class MeetingMarkers:
+    """What identifies a policy-meeting statement, and an extraordinary meeting."""
+
+    titles: dict[str, tuple[str, ...]]
+    bodies: dict[str, tuple[str, ...]]
+    unscheduled: dict[str, tuple[str, ...]]
+
+    def is_statement(self, institution: str, title: str, body: str) -> bool:
+        return any(m in title for m in self.titles.get(institution, ())) or any(
+            m in body for m in self.bodies.get(institution, ())
+        )
+
+    def is_unscheduled(self, institution: str, body: str) -> bool:
+        return any(m in body for m in self.unscheduled.get(institution, ()))
+
+
+def _markers(raw: dict[str, object], key: str) -> dict[str, tuple[str, ...]]:
+    section = raw.get(key) or {}
+    if not isinstance(section, dict):
+        return {}
+    return {str(code): tuple(str(t) for t in values or ()) for code, values in section.items()}
+
+
+def load_meeting_markers(path: Path) -> MeetingMarkers:
     raw = yaml.safe_load(path.read_text("utf-8")) or {}
-    titles = raw.get("statement_titles") or {}
-    return {str(code): tuple(str(t) for t in values or ()) for code, values in titles.items()}
+    return MeetingMarkers(
+        titles=_markers(raw, "statement_titles"),
+        bodies=_markers(raw, "statement_body_markers"),
+        unscheduled=_markers(raw, "unscheduled_body_markers"),
+    )
 
 
 @lru_cache(maxsize=1)
-def meeting_statement_titles() -> dict[str, tuple[str, ...]]:
-    """Substrings that identify a policy-meeting statement, per publisher."""
-    return load_meeting_statement_titles(get_settings().domain_dir / "meetings.yaml")
+def meeting_markers() -> MeetingMarkers:
+    return load_meeting_markers(get_settings().domain_dir / "meetings.yaml")
+
+
+def load_glossary(path: Path) -> tuple[tuple[str, str], ...]:
+    """``(japanese, english)`` pairs naming recurring documents."""
+    raw = yaml.safe_load(path.read_text("utf-8")) or {}
+    return tuple((str(t["ja"]), str(t["en"])) for t in raw.get("terms") or [])
+
+
+@lru_cache(maxsize=1)
+def glossary() -> tuple[tuple[str, str], ...]:
+    return load_glossary(get_settings().domain_dir / "glossary.yaml")
 
 
 @lru_cache(maxsize=1)

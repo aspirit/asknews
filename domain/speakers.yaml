@@ -219,3 +219,16 @@ boj:
     name_ja: 宮尾龍蔵
     role: Board Member
     match: [Miyao, 宮尾]
+  # Board members appointed in 2026; given names are not in the archive yet.
+  - slug: asada
+    name: Asada
+    name_ja: 浅田
+    role: Board Member
+    match: [Asada, 浅田]
+    tenure: {from: "2026-04-01"}
+  - slug: sato-2026
+    name: Sato
+    name_ja: 佐藤
+    role: Board Member
+    match: [Sato, 佐藤]
+    tenure: {from: "2026-06-30"}

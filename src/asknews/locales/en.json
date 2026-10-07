@@ -84,6 +84,8 @@
   "meetings.scheduled": "Scheduled",
   "meetings.missing": "Not indexed",
   "meetings.none": "Not published for this meeting",
+  "meetings.raise": "Raise",
+  "meetings.lower": "Lower",
   "meetings.hold": "Hold",
   "meetings.unscheduled": "Unscheduled meeting",
   "meetings.unanimous": "Unanimous",

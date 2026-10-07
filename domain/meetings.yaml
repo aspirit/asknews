@@ -1,6 +1,12 @@
-# Titles that mark a policy-meeting statement, matched as substrings. Other
-# statements by the same publishers (long-run goals, operational notices,
-# extraordinary measures) do not start a meeting in the timeline.
+# What makes a statement a policy-meeting statement, as substrings of its
+# title (Federal Reserve) or of its text (Bank of Japan, whose statements are
+# titled by their content). Other statements by the same publishers, such as
+# long-run goals or operational notices, do not start a meeting.
 statement_titles:
   fed: ["FOMC statement"]
-  boj: ["当面の金融政策運営について", "金融市場調節方針の変更について"]
+statement_body_markers:
+  boj: ["金融政策決定会合"]
+# Text that marks an extraordinary meeting; the Federal Reserve's calendar
+# marks its own, which the ingester records with the statement.
+unscheduled_body_markers:
+  boj: ["臨時"]

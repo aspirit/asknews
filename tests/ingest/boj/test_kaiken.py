@@ -80,7 +80,9 @@ def test_event_date_and_title() -> None:
 
 def test_namesake_outside_tenure_is_unknown_and_acting_deputy_is_found() -> None:
     directory = load_speakers(REPO_ROOT / "domain" / "speakers.yaml")
-    assert directory.find("boj", "佐藤審議委員就任記者会見", when=date(2026, 6, 30)) is None
+    found = directory.find("boj", "佐藤審議委員就任記者会見", when=date(2026, 6, 30))
+    assert found is not None
+    assert found.slug == "sato-2026"  # the namesake of 2012-2017 is not this person
     assert directory.find("boj", "佐藤審議委員記者会見", when=date(2015, 3, 5)).slug == "sato"  # type: ignore[union-attr]
     match = kaiken._ACTING.search("総裁定例記者会見（内田副総裁代理・6月16日）")
     assert match is not None

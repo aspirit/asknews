@@ -23,7 +23,7 @@ from fractions import Fraction
 
 from asknews.archive.documents import DocumentSummary, by_ids
 from asknews.db.connection import Connection
-from asknews.domain_config import meeting_statement_titles
+from asknews.domain_config import SpeakerDirectory, meeting_markers, speakers
 
 JST = timezone(timedelta(hours=9))
 ROLES = {
@@ -78,14 +78,19 @@ class Decision:
     high: float | None
     change_bp: int | None  # signed basis points against the previous decision
     unanimous: bool | None
-    dissenters: tuple[str, ...]
+    dissenters: tuple[str, ...]  # as the statement names them
     votes: str | None  # "7-2" when counts are known
+    direction: str | None = None  # raise | lower | hold, from the statement's own words
+    dissenters_en: tuple[str, ...] = ()  # resolved through the speaker directory
 
     @property
     def action(self) -> str:
         if self.change_bp is None:
-            return "set"
+            return self.direction or "set"
         return "raise" if self.change_bp > 0 else "lower" if self.change_bp < 0 else "hold"
+
+    def dissenters_in(self, lang: str) -> tuple[str, ...]:
+        return self.dissenters_en if lang == "en" and self.dissenters_en else self.dissenters
 
     @property
     def range_text(self) -> str:
@@ -154,17 +159,29 @@ def _names(text: str) -> tuple[str, ...]:
     return tuple(found)
 
 
-def fed_decision(statement_body: str | None) -> Decision | None:
+def fed_decision(
+    statement_body: str | None, *, previous_low: float | None = None
+) -> Decision | None:
+    """The target range and its change: from the step the statement states
+    ("by 1/4 percentage point"), else against the previous meeting's range."""
     if not statement_body:
         return None
     match = _FED.search(statement_body)
     if match is None:
         return None
     verb, step, low, high = match.groups()
-    change = 0
-    if verb.lower() in ("raise", "increase", "lower", "decrease"):
-        change = round(_fed_number(step) * 100) if step else 0
-        change = change if verb.lower() in ("raise", "increase") else -change
+    direction = {"raise": "raise", "increase": "raise", "lower": "lower", "decrease": "lower"}.get(
+        verb.lower(), "hold"
+    )
+    change: int | None
+    if direction == "hold":
+        change = 0
+    elif step:
+        change = round(_fed_number(step) * 100) * (1 if direction == "raise" else -1)
+    elif previous_low is not None:
+        change = round((_fed_number(low) - previous_low) * 100)
+    else:
+        change = None
     against = _FED_AGAINST.search(statement_body)
     for_ = _FED_FOR.search(statement_body)
     dissenters = _names(against.group(1)) if against else ()
@@ -179,11 +196,22 @@ def fed_decision(statement_body: str | None) -> Decision | None:
         unanimous=(against is None) if for_ else None,
         dissenters=dissenters,
         votes=votes,
+        direction=direction,
+        dissenters_en=dissenters,
     )
 
 
+_AGE, _SAGE = (
+    "".join(chr(c) for c in (0x5F15, 0x304D, 0x4E0A, 0x3052)),
+    "".join(chr(c) for c in (0x5F15, 0x304D, 0x4E0B, 0x3052)),
+)  # "raise", "lower" as the Bank writes them
+
+
 def boj_decision(
-    statement_body: str | None, *, previous_rate: float | None = None
+    statement_body: str | None,
+    *,
+    previous_rate: float | None = None,
+    directory: SpeakerDirectory | None = None,
 ) -> Decision | None:
     """The short-term policy rate as the statement sets it; the change is
     measured against the previous meeting's rate when that is known."""
@@ -214,6 +242,13 @@ def boj_decision(
         unanimous = int(votes_match.group(2)) == 0
     elif _UNANIMOUS in statement_body:
         unanimous = True
+    head = statement_body[:600]
+    direction = "raise" if _AGE in head else "lower" if _SAGE in head else None
+    english = (
+        tuple(spec.name if (spec := directory.find("boj", name)) else name for name in dissenters)
+        if directory
+        else ()
+    )
     return Decision(
         text=text,
         low=rate,
@@ -222,6 +257,8 @@ def boj_decision(
         unanimous=unanimous,
         dissenters=dissenters,
         votes=f"{votes_match.group(1)}-{votes_match.group(2)}" if votes_match else None,
+        direction=direction,
+        dissenters_en=english,
     )
 
 
@@ -273,7 +310,8 @@ def part_status(
 
 def list_meetings(conn: Connection, *, limit: int = 40, today: date | None = None) -> list[Meeting]:
     today = today or date.today()
-    titles = meeting_statement_titles()
+    markers = meeting_markers()
+    directory = speakers()
     rows = conn.execute(
         """
         SELECT d.id, d.kind, d.external_id, d.published_at, d.title, d.meta, i.code AS institution,
@@ -307,8 +345,8 @@ def list_meetings(conn: Connection, *, limit: int = 40, today: date | None = Non
         kind = row["kind"]
         published: datetime = row["published_at"]
         meta = row["meta"] or {}
-        markers = titles.get(institution, ())
-        if kind == "statement" and not any(m in row["title"] for m in markers):
+        body_head = str(row["body_head"] or "")
+        if kind == "statement" and not markers.is_statement(institution, row["title"], body_head):
             continue  # a statement that is not a policy decision
         if institution == "fed":
             try:
@@ -328,7 +366,9 @@ def list_meetings(conn: Connection, *, limit: int = 40, today: date | None = Non
         bodies[int(row["id"])] = row["body_head"]
         if kind == "statement":
             meeting.statement = meeting.statement or _placeholder(row)
-            meeting.unscheduled = bool(meta.get("unscheduled"))
+            meeting.unscheduled = bool(meta.get("unscheduled")) or markers.is_unscheduled(
+                institution, body_head
+            )
         elif kind == "press_conference":
             meeting.press_conference = meeting.press_conference or _placeholder(row)
         elif kind == "minutes":
@@ -340,11 +380,23 @@ def list_meetings(conn: Connection, *, limit: int = 40, today: date | None = Non
 
     # Only meetings that actually produced a statement count; stray minutes
     # without a statement in the archive would otherwise appear as meetings.
-    selected = sorted(
-        (m for m in meetings.values() if m.statement is not None),
-        key=lambda m: m.date,
-        reverse=True,
-    )[:limit]
+    ordered = sorted(
+        (m for m in meetings.values() if m.statement is not None), key=lambda m: m.date
+    )
+    # Decisions are read for every meeting, oldest first, before the window is
+    # cut, so a change against the previous meeting does not depend on the limit.
+    previous_rate: dict[str, float | None] = {}
+    for meeting in ordered:
+        body = bodies.get(meeting.statement.id) if meeting.statement else None
+        if meeting.institution == "fed":
+            meeting.decision = fed_decision(body, previous_low=previous_rate.get("fed"))
+        else:
+            meeting.decision = boj_decision(
+                body, previous_rate=previous_rate.get("boj"), directory=directory
+            )
+        if meeting.decision is not None:
+            previous_rate[meeting.institution] = meeting.decision.low
+    selected = ordered[::-1][:limit]
     ids = [
         doc.id
         for m in selected
@@ -352,8 +404,7 @@ def list_meetings(conn: Connection, *, limit: int = 40, today: date | None = Non
         if doc is not None
     ]
     full = by_ids(conn, ids)
-    previous_rate: dict[str, float | None] = {}
-    for meeting in reversed(selected):  # oldest first, so each change has its predecessor
+    for meeting in selected:
         for attr in ("statement", "press_conference", "minutes", "opinions", "outlook"):
             doc = getattr(meeting, attr)
             if doc is not None and doc.id in full:
@@ -374,13 +425,6 @@ def list_meetings(conn: Connection, *, limit: int = 40, today: date | None = Non
             for role in ROLES[meeting.institution]
         ]
         meeting.documents = [p.document for p in meeting.parts if p.document is not None]
-        body = bodies.get(meeting.statement.id) if meeting.statement else None
-        if meeting.institution == "fed":
-            meeting.decision = fed_decision(body)
-        else:
-            meeting.decision = boj_decision(body, previous_rate=previous_rate.get("boj"))
-            if meeting.decision is not None:
-                previous_rate["boj"] = meeting.decision.low
     return selected
 
 

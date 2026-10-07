@@ -84,6 +84,8 @@
   "meetings.scheduled": "公表予定",
   "meetings.missing": "未収録",
   "meetings.none": "この会合では公表なし",
+  "meetings.raise": "利上げ",
+  "meetings.lower": "利下げ",
   "meetings.hold": "据え置き",
   "meetings.unscheduled": "臨時会合",
   "meetings.unanimous": "全員一致",

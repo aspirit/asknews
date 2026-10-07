@@ -3,7 +3,11 @@
 {%- endmacro %}
 
 {% macro decision_badge(d) -%}
-{% if d.change_bp %}{{ '%+d' % d.change_bp }} bp &rarr; {% elif d.change_bp == 0 %}{{ t('meetings.hold') }} &middot; {% endif %}{{ d.range_text }}
+{% if d.change_bp %}{{ '%+d' % d.change_bp }} bp &rarr; {% elif d.change_bp == 0 %}{{ t('meetings.hold') }} &middot; {% elif d.action in ('raise', 'lower') %}{{ t('meetings.' ~ d.action) }} &rarr; {% endif %}{{ d.range_text }}
+{%- endmacro %}
+
+{% macro vote_line(d) -%}
+{% if d.unanimous %}{{ t('meetings.unanimous') }}{% elif d.dissenters %}{{ t('meetings.dissent', n=d.dissenters | length, names=d.dissenters_in(lang) | join(', ')) }}{% endif %}{% if d.votes and (d.unanimous or d.dissenters) %} ({{ d.votes }}){% endif %}
 {%- endmacro %}
 
 {% macro lang_badge(doc) -%}

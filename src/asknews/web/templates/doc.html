@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import ai_tag, lang_badge, askbox, decision_badge with context %}
+{% from "_macros.html" import ai_tag, lang_badge, askbox, decision_badge, vote_line with context %}
 {% set title, translated = doc.title_in(lang) %}
 {% block title %}{{ title }} &middot; {{ t('site.name') }}{% endblock %}
 {% block content %}
@@ -39,8 +39,9 @@
       {% set summary = doc.summary_in(lang) %}
       {% if summary %}<div class="aisum" lang="{{ lang }}">{{ ai_tag('ai.summary') }}<p>{{ summary }}</p></div>{% endif %}
       <div class="sec-h" style="margin-top:32px"><h3>{{ t('doc.full_text') }}</h3></div>
-      <div class="dsecs">{% for s in segments %}
-        <section id="s{{ s.position + 1 }}" class="dsec"><h3><a class="anc" href="#s{{ s.position + 1 }}">&sect;{{ s.position + 1 }}</a>{% if s.speaker %}{{ s.speaker }}{% endif %}</h3>{% for para in s.text.split('\n\n') %}<p>{{ para }}</p>{% endfor %}</section>{% endfor %}
+      {% set ns = namespace(n=0) %}
+      <div class="dsecs">{% for s in segments %}{% for para in s.text.split('\n\n') %}{% set ns.n = ns.n + 1 %}{% set anchor = 's' ~ (s.position + 1) if loop.index0 == 0 else 's' ~ (s.position + 1) ~ '-' ~ loop.index0 %}
+        <section id="{{ anchor }}" class="dsec"><h3><a class="anc" href="#{{ anchor }}">&sect;{{ ns.n }}</a>{% if s.speaker and loop.index0 == 0 %}{{ s.speaker }}{% endif %}</h3><p>{{ para }}</p></section>{% endfor %}{% endfor %}
       </div>
       {% endif %}
     </article>
@@ -50,7 +51,7 @@
         <div class="fu" style="margin-top:0"><div class="lst">{% for q in questions %}<a href="{{ u('/ask?q=' ~ ((q ~ ' (' ~ title ~ ')') | urlencode) ~ '&doc=' ~ (doc.id)) }}">{{ q }}</a>{% endfor %}</div></div>
         {{ askbox(doc_id=doc.id) }}
       </div>
-      {% if meeting %}<div class="railbox"><span class="rl">{{ t('doc.meeting') }}</span><a href="{{ u('/archive/meetings?open=' ~ (meeting.key) ~ '#m-' ~ (meeting.key)) }}"><b>{{ t.institution(meeting.institution, short=True) }} &middot; {{ t.date(meeting.statement.published_at, meeting.institution) }}</b></a>{% if meeting.decision %}<span class="rs">{{ t('meetings.decision') }}: {{ decision_badge(meeting.decision) }}{% if meeting.decision.unanimous %} &middot; {{ t('meetings.unanimous') }}{% elif meeting.decision.dissenters %} &middot; {{ t('meetings.dissent', n=meeting.decision.dissenters | length, names=meeting.decision.dissenters | join(', ')) }}{% endif %} {{ ai_tag('ai.extracted') }}</span>{% endif %}</div>{% endif %}
+      {% if meeting %}<div class="railbox"><span class="rl">{{ t('doc.meeting') }}</span><a href="{{ u('/archive/meetings?open=' ~ (meeting.key) ~ '#m-' ~ (meeting.key)) }}"><b>{{ t.institution(meeting.institution, short=True) }} &middot; {{ t.date(meeting.statement.published_at, meeting.institution) }}</b></a>{% if meeting.decision %}<span class="rs">{{ t('meetings.decision') }}: {{ decision_badge(meeting.decision) }}{% if meeting.decision.unanimous or meeting.decision.dissenters %} &middot; {{ vote_line(meeting.decision) }}{% endif %} {{ ai_tag('ai.extracted') }}</span>{% endif %}</div>{% endif %}
       <div class="railbox"><span class="rl">{{ t('doc.original') }}</span><a href="{{ doc.source_url }}" target="_blank" rel="noopener">{{ doc.source_url.split('/')[2] }} &nearr;</a><span class="rs">{{ t('doc.opens_official') }} &middot; {{ lang_badge(doc) }}</span></div>
     </aside>
   </div>
