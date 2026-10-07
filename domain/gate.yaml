@@ -1,0 +1,121 @@
+# Vocabulary that marks a question as being about the archive. A question
+# that mentions none of these, no publisher and no known speaker is declined
+# unless lexical retrieval still finds strongly matching passages.
+#
+# `institutions` lists the words that name each publisher; `recency` lists
+# words that ask for the latest material. Both are matched case-insensitively.
+institutions:
+  fed: [federal reserve, fomc, the fed, "fed ", frb, 連邦準備, 米連邦, ＦＲＢ]
+  boj: [bank of japan, boj, 日銀, 日本銀行]
+  ecb: [european central bank, ecb, 欧州中央銀行, ＥＣＢ]
+  boe: [bank of england, boe, イングランド銀行]
+  bis: ["bis ", bank for international settlements, 国際決済銀行]
+  bea: [bureau of economic analysis, "bea ", 米経済分析局]
+  mof: [ministry of finance, 財務省, 財務相, 財務大臣]
+  fsa: [financial services agency, 金融庁]
+recency:
+  en: [latest, most recent, recent, recently, last week, last month, last meeting, this week,
+       this month, this year, yesterday, today, now]
+  ja: [最近, 直近, 最新, 先週, 先月, 今週, 今月, 今年, 昨日, 今日, 足元, 前回]
+terms:
+  en:
+    - central bank
+    - federal reserve
+    - fomc
+    - the fed
+    - bank of japan
+    - boj
+    - ecb
+    - european central bank
+    - bank of england
+    - bis
+    - monetary policy
+    - interest rate
+    - policy rate
+    - rate hike
+    - rate cut
+    - rate increase
+    - rate decrease
+    - rates
+    - inflation
+    - deflation
+    - cpi
+    - pce
+    - price stability
+    - yen
+    - dollar
+    - euro
+    - exchange rate
+    - intervention
+    - yield
+    - jgb
+    - treasury
+    - bond
+    - balance sheet
+    - quantitative
+    - tapering
+    - dot plot
+    - forward guidance
+    - unemployment
+    - labor market
+    - employment
+    - gdp
+    - recession
+    - growth outlook
+    - press conference
+    - minutes
+    - statement
+    - outlook report
+    - summary of opinions
+    - governor
+    - chair
+    - board member
+    - tariff
+    - wages
+    - shunto
+    - beige book
+  ja:
+    - 日銀
+    - 日本銀行
+    - 中央銀行
+    - 金融政策
+    - 政策金利
+    - 利上げ
+    - 利下げ
+    - 金利
+    - 物価
+    - インフレ
+    - デフレ
+    - 消費者物価
+    - 円安
+    - 円高
+    - 為替
+    - 介入
+    - 国債
+    - 量的緩和
+    - 金融緩和
+    - 引き締め
+    - 総裁
+    - 副総裁
+    - 審議委員
+    - 決定会合
+    - 記者会見
+    - 議事要旨
+    - 展望レポート
+    - 主な意見
+    - 賃上げ
+    - 春闘
+    - 景気
+    - 経済見通し
+    - 雇用
+    - FRB
+    - 連邦準備
+    - FOMC
+    - ECB
+    - 欧州中央銀行
+    - 関税
+    - 財務省
+    - 金融庁
+    - イールドカーブ
+    - マイナス金利
+    - バランスシート
