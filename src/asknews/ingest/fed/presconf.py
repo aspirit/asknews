@@ -195,7 +195,12 @@ def _speaker_id(
         spec = directory.head_on(INSTITUTION, when.date())
     if spec is not None:
         return upsert_speaker(
-            conn, institution=INSTITUTION, slug=spec.slug, name=spec.name, role=spec.role
+            conn,
+            institution=INSTITUTION,
+            slug=spec.slug,
+            name=spec.name,
+            role=spec.role,
+            name_ja=spec.name_ja,
         )
     if surname is None:
         return None

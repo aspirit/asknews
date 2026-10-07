@@ -168,7 +168,12 @@ def _speaker_id(
     spec = directory.find(INSTITUTION, name)
     if spec is not None:
         return upsert_speaker(
-            conn, institution=INSTITUTION, slug=spec.slug, name=spec.name, role=spec.role
+            conn,
+            institution=INSTITUTION,
+            slug=spec.slug,
+            name=spec.name,
+            role=spec.role,
+            name_ja=spec.name_ja,
         )
     return upsert_speaker(conn, institution=INSTITUTION, slug=url_surname, name=name, role=role)
 

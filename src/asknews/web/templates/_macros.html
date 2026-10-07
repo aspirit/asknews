@@ -11,7 +11,7 @@
 {%- endmacro %}
 
 {% macro meta_line(doc, short=True) -%}
-<div class="m"><b>{{ t.institution(doc.institution, short=short) }}</b><span>{{ t.kind(doc.kind) }}</span><span>{{ t.date(doc.published_at) }}</span>{{ lang_badge(doc) }}</div>
+<div class="m"><b>{{ t.institution(doc.institution, short=short) }}</b><span>{{ t.kind(doc.kind) }}</span><span>{{ t.date(doc.published_at, doc.institution) }}</span>{{ lang_badge(doc) }}</div>
 {%- endmacro %}
 
 {% macro archive_row(doc) -%}
@@ -25,7 +25,7 @@
 
 {% macro list_row(doc) -%}
 <a class="rowi" href="/doc/{{ doc.id }}">
-  <span class="d">{{ t.date(doc.published_at) }}</span>
+  <span class="d">{{ t.date(doc.published_at, doc.institution) }}</span>
   <span class="o">{{ t.institution(doc.institution, short=True) }}</span>
   <div class="tx"><h4>{{ doc_title(doc) }}</h4>{% set summary = doc.summary_in(lang) %}{% if summary %}<p>{{ ai_tag('ai.summary', small=True) }} {{ summary }}</p>{% endif %}</div>
   <span class="tp">{{ t.kind(doc.kind) }} {{ lang_badge(doc) }}</span>
@@ -36,9 +36,9 @@
 <a class="vcard{{ ' row' if row else '' }}" href="/doc/{{ doc.id }}">
   <div class="vth"><span class="pl"></span>{% if doc.duration_sec %}<span class="du">{{ doc.duration_sec | duration }}</span>{% endif %}</div>
   <div class="vtx">
-    <div class="m"><b>{{ t.institution(doc.institution, short=True) }}</b><span>{{ t.date(doc.published_at) }}</span>{{ lang_badge(doc) }}</div>
-    <h4>{% if doc.speaker %}{{ doc.speaker }}<span class="role">{{ '' if row else ' &middot; ' }}{{ doc.speaker_role or '' }}</span>{% else %}{{ doc_title(doc) }}{% endif %}</h4>
-    <div class="vf">{% if doc.duration_sec %}<span>{{ doc.duration_sec | duration }}</span>{% endif %}<span class="{{ 'yes' if doc.timestamped else '' }}">{{ '&#9679; ' ~ t('archive.has_timestamps') if doc.timestamped else '&#9675; ' ~ t('archive.no_timestamps') }}</span></div>
+    <div class="m"><b>{{ t.institution(doc.institution, short=True) }}</b><span>{{ t.date(doc.published_at, doc.institution) }}</span>{{ lang_badge(doc) }}</div>
+    <h4>{% if doc.speaker %}{{ doc.speaker_in(lang) }}<span class="role">{{ '' if row else ' &middot; ' }}{{ t.role(doc.speaker_role) if doc.speaker_role else '' }}</span>{% else %}{{ doc_title(doc) }}{% endif %}</h4>
+    <div class="vf">{% if doc.duration_sec %}<span>{{ doc.duration_sec | duration }}</span>{% endif %}<span class="{{ 'yes' if doc.timestamped else '' }}">{{ t('archive.has_timestamps') if doc.timestamped else t('archive.no_timestamps') }}</span></div>
     {% if why %}<p class="why">{{ why }}</p>{% endif %}
   </div>
 </a>

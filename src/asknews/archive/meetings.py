@@ -187,6 +187,7 @@ def _placeholder(row: dict[str, object]) -> DocumentSummary:
         speaker_slug=None,
         speaker=None,
         speaker_role=None,
+        speaker_ja=None,
         media_provider=None,
         media_id=None,
         duration_sec=None,

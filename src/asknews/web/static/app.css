@@ -28,8 +28,8 @@ p{margin:0;text-wrap:pretty}h1,h2,h3{margin:0;text-wrap:balance}
 .nav a.on{font-weight:700}
 .nav a.on::after{content:'';position:absolute;left:12px;right:12px;bottom:-15px;height:4px;background:var(--blue)}
 .lang{display:flex;border:1.5px solid var(--ink)}
-.lang button{border:0;background:none;padding:6px 11px;font-size:12px;font-weight:700}
-.lang button.on{background:var(--ink);color:#fff}
+.lang a,.lang button{border:0;background:none;padding:6px 11px;font-size:12px;font-weight:700;color:inherit;text-decoration:none}
+.lang a.on,.lang button.on{background:var(--ink);color:#fff}
 .tabbar{display:none}
 
 /* ask box */

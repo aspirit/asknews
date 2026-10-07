@@ -114,7 +114,9 @@ def home(request: Request, conn: Conn) -> HTMLResponse:
         request,
         "home.html",
         page="home",
-        latest=documents.prominent(conn, limit=10),
+        latest=sorted(
+            documents.prominent(conn, limit=10), key=lambda d: d.published_at, reverse=True
+        ),
         featured=featured_videos(conn, lang),
         questions=sample_questions(lang),
     )
@@ -257,6 +259,7 @@ def document_page(request: Request, conn: Conn, document_id: int) -> HTMLRespons
         page="archive",
         doc=found.document,
         segments=found.segments,
+        blocks=documents.speaker_blocks(found.segments),
         meta=found.meta,
         meeting=meeting,
         questions=document_questions(found.document.kind, lang),

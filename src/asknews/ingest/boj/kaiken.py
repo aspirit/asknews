@@ -152,7 +152,12 @@ def resolve_speaker(
         LOG.warning("unknown speaker in title %r", title)
         return None, None
     speaker_id = upsert_speaker(
-        conn, institution=INSTITUTION, slug=spec.slug, name=spec.name, role=spec.role
+        conn,
+        institution=INSTITUTION,
+        slug=spec.slug,
+        name=spec.name,
+        role=spec.role,
+        name_ja=spec.name_ja,
     )
     return speaker_id, spec.name
 

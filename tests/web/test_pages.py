@@ -32,6 +32,8 @@ def test_archive_pages(api: Api) -> None:
     assert client.get("/archive/latest", params={"kind": "poem"}).status_code == 404
     videos = client.get("/archive/videos").text
     assert "Jerome H. Powell" in videos
+    assert "ジェローム・パウエル" in client.get("/archive/videos", params={"lang": "ja"}).text
+    client.cookies.clear()
     rankings = client.get("/archive/rankings", params={"days": 3650}).text
     assert "Jerome H. Powell" in rankings
     meetings = client.get("/archive/meetings").text

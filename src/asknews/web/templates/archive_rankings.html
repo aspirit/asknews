@@ -20,7 +20,7 @@
   <p class="cnt">{{ t('rankings.note') }}</p>
   {% set toggle %}<div class="seg2">{% for p in periods %}<a href="/archive/rankings?days={{ p }}" class="{{ 'on' if days == p else '' }}">{{ t('rankings.period.' ~ p) }}</a>{% endfor %}</div>{% endset %}
   {% set speaker_rows = [] %}
-  {% for s in speakers %}{% set _ = speaker_rows.append({'name': s.name, 'value': s.speeches + s.press_conferences, 'sub': t.institution(s.institution, short=True) ~ ' &middot; ' ~ (s.role or '') ~ ' &middot; ' ~ s.speeches ~ ' ' ~ t('rankings.speeches') ~ ', ' ~ s.press_conferences ~ ' ' ~ t('rankings.press_conferences') ~ (', ' ~ s.minutes_spoken ~ ' ' ~ t('rankings.minutes') if s.minutes_spoken else '')}) %}{% endfor %}
+  {% for s in speakers %}{% set _ = speaker_rows.append({'name': s.name_in(lang), 'value': s.speeches + s.press_conferences, 'sub': t.institution(s.institution, short=True) ~ ' &middot; ' ~ (t.role(s.role) if s.role else '') ~ ' &middot; ' ~ s.speeches ~ ' ' ~ t('rankings.speeches') ~ ', ' ~ s.press_conferences ~ ' ' ~ t('rankings.press_conferences') ~ (', ' ~ s.minutes_spoken ~ ' ' ~ t('rankings.minutes') if s.minutes_spoken else '')}) %}{% endfor %}
   {% set publisher_rows = [] %}
   {% for p in publishers %}{% set _ = publisher_rows.append({'name': t.institution(p.code), 'value': p.total, 'sub': p.by_kind.items() | map('join', ' ') | join(', ')}) %}{% endfor %}
   {% set topic_rows = [] %}

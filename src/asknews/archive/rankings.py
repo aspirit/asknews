@@ -14,11 +14,15 @@ from asknews.domain_config import Topic, topics
 class SpeakerRank:
     slug: str
     name: str
+    name_ja: str | None
     role: str | None
     institution: str
     speeches: int
     press_conferences: int
     minutes_spoken: int
+
+    def name_in(self, lang: str) -> str:
+        return self.name_ja if lang == "ja" and self.name_ja else self.name
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,7 +48,7 @@ def speakers(conn: Connection, *, days: int | None = 90, limit: int = 12) -> lis
     since = datetime.now(UTC) - timedelta(days=days) if days else datetime(1900, 1, 1, tzinfo=UTC)
     rows = conn.execute(
         """
-        SELECT sp.slug, sp.name, sp.role, i.code AS institution,
+        SELECT sp.slug, sp.name, sp.name_ja, sp.role, i.code AS institution,
                count(*) FILTER (WHERE d.kind = 'speech') AS speeches,
                count(*) FILTER (WHERE d.kind = 'press_conference') AS press_conferences,
                coalesce(sum(
@@ -58,7 +62,7 @@ def speakers(conn: Connection, *, days: int | None = 90, limit: int = 12) -> lis
           JOIN institutions i ON i.id = sp.institution_id
           LEFT JOIN media m ON m.document_id = d.id
          WHERE d.published_at >= %s
-         GROUP BY sp.slug, sp.name, sp.role, i.code
+         GROUP BY sp.slug, sp.name, sp.name_ja, sp.role, i.code
          ORDER BY (count(*) FILTER (WHERE d.kind = 'speech'))
                   + 2 * (count(*) FILTER (WHERE d.kind = 'press_conference')) DESC, sp.name
          LIMIT %s
@@ -69,6 +73,7 @@ def speakers(conn: Connection, *, days: int | None = 90, limit: int = 12) -> lis
         SpeakerRank(
             r["slug"],
             r["name"],
+            r["name_ja"],
             r["role"],
             r["institution"],
             int(r["speeches"]),

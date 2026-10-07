@@ -3,7 +3,7 @@
 {% block title %}{{ t('archive.meetings') }} &middot; {{ t('site.name') }}{% endblock %}
 {% macro part(label, doc) %}
 <div class="part"><span class="pl">{{ label }}</span>
-  {% if doc %}<a href="/doc/{{ doc.id }}">{{ doc.title_in(lang)[0] }} <span class="pd">{{ t.date(doc.published_at, form='short') }}</span> {{ lang_badge(doc) }}</a>{% else %}<span class="pn">{{ t('meetings.pending') }}</span>{% endif %}
+  {% if doc %}<a href="/doc/{{ doc.id }}">{{ doc.title_in(lang)[0] }} <span class="pd">{{ t.date(doc.published_at, doc.institution, form='short') }}</span> {{ lang_badge(doc) }}</a>{% else %}<span class="pn">{{ t('meetings.pending') }}</span>{% endif %}
 </div>
 {% endmacro %}
 {% block content %}
@@ -20,7 +20,7 @@
         {% if m %}
         <details class="mcard" id="m-{{ m.key }}" {% if m.key == open_key %}open{% endif %}>
           <summary class="mh">
-            <span class="md">{{ t.institution(code, short=True) }} &middot; {{ t.date(m.statement.published_at) }}</span>
+            <span class="md">{{ t.institution(code, short=True) }} &middot; {{ t.date(m.statement.published_at, code) }}</span>
             <span class="mt"><b>{{ briefs[m.key].title_in(lang) if m.key in briefs else m.statement.title_in(lang)[0] }}</b>{% if m.key in briefs %} {{ ai_tag('ai.title') }}{% endif %}</span>
             {% if m.decision %}<span class="mdec">{{ m.decision }}</span>{% endif %}
             <span class="mx">+</span>

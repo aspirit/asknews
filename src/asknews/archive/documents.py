@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -14,6 +15,7 @@ _LIST_SQL = """
 SELECT d.id, d.kind, d.lang, d.title, d.published_at, d.source_url, d.summary,
        i.code AS institution, i.name AS institution_name,
        sp.slug AS speaker_slug, sp.name AS speaker, sp.role AS speaker_role,
+       sp.name_ja AS speaker_ja,
        m.provider AS media_provider, m.provider_id AS media_id, m.duration_sec,
        d.meta->>'timestamped' AS timestamped,
        t_en.title AS title_en, t_en.summary AS summary_en,
@@ -41,6 +43,7 @@ class DocumentSummary:
     speaker_slug: str | None
     speaker: str | None
     speaker_role: str | None
+    speaker_ja: str | None
     media_provider: str | None
     media_id: str | None
     duration_sec: int | None
@@ -52,6 +55,10 @@ class DocumentSummary:
         if lang != self.lang and self.translations.get(lang, {}).get("title"):
             return str(self.translations[lang]["title"]), True
         return self.title, False
+
+    def speaker_in(self, lang: str) -> str | None:
+        """The principal speaker's name in the interface language when known."""
+        return self.speaker_ja if lang == "ja" and self.speaker_ja else self.speaker
 
     def summary_in(self, lang: str) -> str | None:
         if lang != self.lang and self.translations.get(lang, {}).get("summary"):
@@ -80,6 +87,7 @@ def _row_to_summary(row: dict[str, Any]) -> DocumentSummary:
         speaker_slug=row["speaker_slug"],
         speaker=row["speaker"],
         speaker_role=row["speaker_role"],
+        speaker_ja=row["speaker_ja"],
         media_provider=row["media_provider"],
         media_id=row["media_id"],
         duration_sec=row["duration_sec"],
@@ -152,6 +160,27 @@ class SegmentView:
     speaker: str | None
     start_sec: float | None
     end_sec: float | None
+
+
+@dataclass(frozen=True, slots=True)
+class SpeakerBlock:
+    """Consecutive segments by one speaker: a question, or a whole answer."""
+
+    speaker: str | None
+    first: int  # position of the first segment, which carries the anchor
+    anchors: list[int]  # positions of the other segments, kept as link targets
+    texts: list[str]
+
+
+def speaker_blocks(segments: Sequence[SegmentView]) -> list[SpeakerBlock]:
+    blocks: list[SpeakerBlock] = []
+    for segment in segments:
+        if blocks and blocks[-1].speaker == segment.speaker:
+            blocks[-1].anchors.append(segment.position)
+            blocks[-1].texts.append(segment.text)
+        else:
+            blocks.append(SpeakerBlock(segment.speaker, segment.position, [], [segment.text]))
+    return blocks
 
 
 @dataclass(frozen=True, slots=True)

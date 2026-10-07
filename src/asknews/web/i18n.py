@@ -7,11 +7,23 @@ import json
 from functools import cache
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 LOCALES_DIR = Path(__file__).resolve().parents[1] / "locales"
 LANGUAGES = ("en", "ja")
 DEFAULT_LANGUAGE = "en"
-JST = dt.timezone(dt.timedelta(hours=9))
+# Dates are shown as the publisher's calendar date, whatever the reader's
+# language: a Washington afternoon stays on its own day for a reader in Tokyo.
+ZONES = {
+    "fed": "America/New_York",
+    "bea": "America/New_York",
+    "boj": "Asia/Tokyo",
+    "mof": "Asia/Tokyo",
+    "fsa": "Asia/Tokyo",
+    "ecb": "Europe/Frankfurt",
+    "bis": "Europe/Zurich",
+    "boe": "Europe/London",
+}
 
 
 @cache
@@ -37,14 +49,19 @@ class Translator:
     def get(self, key: str) -> Any:
         return self._strings.get(key, self._fallback.get(key))
 
-    def date(self, when: dt.datetime, *, form: str = "full") -> str:
-        local = when.astimezone(JST) if self.lang == "ja" else when
+    def date(self, when: dt.datetime, institution: str | None = None, *, form: str = "full") -> str:
+        local = when.astimezone(ZoneInfo(ZONES.get(institution or "", "UTC")))
         months: list[str] = self.get("date.months")
         return self(f"date.{form}", y=local.year, mon=months[local.month - 1], d=local.day)
 
     def date_only(self, when: dt.date, *, form: str = "full") -> str:
         months: list[str] = self.get("date.months")
         return self(f"date.{form}", y=when.year, mon=months[when.month - 1], d=when.day)
+
+    def role(self, role: str) -> str:
+        """A speaker's role in the interface language, or as recorded when untranslated."""
+        value = self.get(f"role.{role}")
+        return str(value) if value else role
 
     def kind(self, kind: str) -> str:
         return self(f"kind.{kind}")

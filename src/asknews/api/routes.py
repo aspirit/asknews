@@ -129,7 +129,7 @@ def rankings_endpoint(
         speakers=[
             schemas.SpeakerRankOut(
                 slug=r.slug,
-                name=r.name,
+                name=r.name_in(lang),
                 role=r.role,
                 institution=r.institution,
                 speeches=r.speeches,

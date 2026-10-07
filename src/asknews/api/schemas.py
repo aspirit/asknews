@@ -46,7 +46,7 @@ class DocumentOut(BaseModel):
             published_at=doc.published_at,
             source_url=doc.source_url,
             summary=doc.summary_in(lang),
-            speaker=doc.speaker,
+            speaker=doc.speaker_in(lang),
             speaker_role=doc.speaker_role,
             media=MediaOut(
                 provider=doc.media_provider, id=doc.media_id, duration_sec=doc.duration_sec

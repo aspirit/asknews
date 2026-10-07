@@ -70,6 +70,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pypdf" },
     { name = "pyyaml" },
+    { name = "tzdata" },
     { name = "uvicorn" },
 ]
 
@@ -105,6 +106,7 @@ requires-dist = [
     { name = "sentence-transformers", marker = "extra == 'model'", specifier = ">=5.1" },
     { name = "torch", marker = "sys_platform == 'linux' and extra == 'model'", specifier = ">=2.6", index = "https://download.pytorch.org/whl/cpu" },
     { name = "torch", marker = "sys_platform != 'linux' and extra == 'model'", specifier = ">=2.6" },
+    { name = "tzdata", specifier = ">=2025.1" },
     { name = "uvicorn", specifier = ">=0.37" },
     { name = "uvicorn", marker = "extra == 'model'", specifier = ">=0.37" },
 ]

@@ -59,17 +59,24 @@ def institution_id(conn: Connection, code: str) -> int:
 
 
 def upsert_speaker(
-    conn: Connection, *, institution: str, slug: str, name: str, role: str | None
+    conn: Connection,
+    *,
+    institution: str,
+    slug: str,
+    name: str,
+    role: str | None,
+    name_ja: str | None = None,
 ) -> int:
     row = conn.execute(
         """
-        INSERT INTO speakers (institution_id, slug, name, role)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO speakers (institution_id, slug, name, role, name_ja)
+        VALUES (%s, %s, %s, %s, %s)
         ON CONFLICT (slug) DO UPDATE
-           SET name = EXCLUDED.name, role = EXCLUDED.role
+           SET name = EXCLUDED.name, role = EXCLUDED.role,
+               name_ja = coalesce(EXCLUDED.name_ja, speakers.name_ja)
         RETURNING id
         """,
-        (institution_id(conn, institution), slug, name, role),
+        (institution_id(conn, institution), slug, name, role, name_ja),
     ).fetchone()
     assert row is not None
     return int(row["id"])

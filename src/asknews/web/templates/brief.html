@@ -14,7 +14,7 @@
     </article>
     <aside class="drail">
       <div class="askcard"><div class="kick">{{ t('nav.ask') }}</div>{{ askbox() }}</div>
-      {% if meeting %}<div class="railbox"><span class="rl">{{ t('doc.meeting') }}</span><a href="/archive/meetings?open={{ meeting.key }}#m-{{ meeting.key }}">{{ t.institution(meeting.institution, short=True) }} &middot; {{ t.date(meeting.statement.published_at) }} &rarr;</a></div>{% endif %}
+      {% if meeting %}<div class="railbox"><span class="rl">{{ t('doc.meeting') }}</span><a href="/archive/meetings?open={{ meeting.key }}#m-{{ meeting.key }}">{{ t.institution(meeting.institution, short=True) }} &middot; {{ t.date(meeting.statement.published_at, meeting.institution) }} &rarr;</a></div>{% endif %}
     </aside>
   </div>
 </div>

@@ -67,7 +67,12 @@ def db(test_database_url: str) -> Iterator[Connection]:
 def seed_archive(db: Connection) -> dict[str, int]:
     migrate(db)
     powell = upsert_speaker(
-        db, institution="fed", slug="powell", name="Jerome H. Powell", role="Chair"
+        db,
+        institution="fed",
+        slug="powell",
+        name="Jerome H. Powell",
+        role="Chair",
+        name_ja="ジェローム・パウエル",
     )
     ids: dict[str, int] = {}
     ids["statement"] = upsert_document(
