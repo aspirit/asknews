@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from asknews.answer.llm import ScriptedLLM, estimate_cost
+from asknews.answer.llm import Completion, ScriptedLLM, estimate_cost
 from asknews.answer.pipeline import Limits, ask
 from asknews.db.connection import Connection
 from asknews.db.migrate import migrate
@@ -142,3 +142,26 @@ def test_ungrounded_reply_becomes_no_sources(db: Connection) -> None:
 def test_cost_estimate() -> None:
     assert estimate_cost("claude-opus-5-5", 1_000_000, 0) == 4.0
     assert estimate_cost("unknown-model", 0, 1_000_000) == 20.0
+
+
+class ExplodingLLM:
+    model = "exploding"
+
+    def complete(self, *, system: str, user: str, max_tokens: int) -> Completion:
+        del system, user, max_tokens
+        raise ConnectionError("no network")
+
+
+def test_model_failure_is_an_error_outcome(db: Connection) -> None:
+    seed(db)
+    result = ask(
+        db,
+        HashEmbedder(),
+        ExplodingLLM(),
+        "What did the Fed decide about the federal funds rate?",
+        directory=DIRECTORY,
+        vocab=VOCAB,
+    )
+    assert (result.status, result.reason) == ("error", "model")
+    assert result.citations
+    assert db.execute("SELECT status FROM ask_requests").fetchone()["status"] == "error"  # type: ignore[index]

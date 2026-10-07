@@ -8,6 +8,7 @@ Every outcome is recorded in ``ask_requests``.
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 from dataclasses import dataclass, field
@@ -25,6 +26,7 @@ from asknews.retrieval.fusion import Citation
 from asknews.retrieval.gate import Vocabulary
 from asknews.retrieval.query import detect_language
 
+LOG = logging.getLogger(__name__)
 MAX_ANSWER_TOKENS = 2000
 _CITATION = re.compile(r"\[(\d{1,2})\]")
 
@@ -178,11 +180,27 @@ def ask(
         )
         return AskResult("no_sources", lang, meta=retrieval.meta, request_id=request_id)
 
-    completion = llm.complete(
-        system=system_prompt(lang),
-        user=user_message(question, retrieval.citations),
-        max_tokens=MAX_ANSWER_TOKENS,
-    )
+    try:
+        completion = llm.complete(
+            system=system_prompt(lang),
+            user=user_message(question, retrieval.citations),
+            max_tokens=MAX_ANSWER_TOKENS,
+        )
+    except Exception as exc:
+        LOG.warning("model call failed: %s", exc)
+        request_id = _log(
+            conn,
+            lang=lang,
+            question=question,
+            status="error",
+            client_hash=client_hash,
+            started=started,
+            citations=retrieval.citations,
+            meta={"error": type(exc).__name__},
+        )
+        return AskResult(
+            "error", lang, citations=retrieval.citations, reason="model", request_id=request_id
+        )
     tokens = (completion.input_tokens, completion.output_tokens)
     if completion.refused:
         request_id = _log(

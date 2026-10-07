@@ -1,0 +1,19 @@
+# Retrieval regression cases. Each question names the document that should
+# appear among the citations (by publisher and identifier, or by a title
+# fragment), and the rank by which it should appear.
+cases:
+  - question: What did the FOMC decide at its September 2026 meeting?
+    expect: {institution: fed, kind: statement, external_id: "20260916"}
+    within: 5
+  - question: How did the Fed describe the outlook at the September 2025 press conference?
+    expect: {institution: fed, kind: press_conference, external_id: "20250917"}
+    within: 5
+  - question: 日銀は2026年9月の決定会合で政策金利をどう変更しましたか
+    expect: {institution: boj, kind: press_conference, external_id: kk260924a}
+    within: 5
+  - question: 植田総裁は2024年3月の会見でマイナス金利解除についてどう説明しましたか
+    expect: {institution: boj, kind: press_conference, external_id: kk240321a}
+    within: 5
+  - question: Where did the Fed minutes discuss "balance sheet" policy?
+    expect: {institution: fed, kind: minutes}
+    within: 3
