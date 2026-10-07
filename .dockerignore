@@ -11,3 +11,6 @@ docs
 .env.*
 *.md
 !README.md
+*.sql.gz
+*.log
+._*
