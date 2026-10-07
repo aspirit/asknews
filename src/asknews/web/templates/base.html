@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>{% block title %}{{ t('site.name') }}{% endblock %}</title>
+<meta name="description" content="{{ t('site.tagline') }}">
+<link rel="stylesheet" href="/static/app.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2322409a'/%3E%3Ctext x='16' y='22' font-size='18' font-family='sans-serif' font-weight='800' fill='white' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
+{% block head %}{% endblock %}
+</head>
+<body class="{{ 'ja' if lang == 'ja' else '' }}">
+{% set nav_items = [('home', '/', t('nav.home')), ('ask', '/ask', t('nav.ask')), ('archive', '/archive', t('nav.archive')), ('about', '/about', t('nav.about'))] %}
+<header class="hdr">
+  <div class="wrap">
+    <a class="logo" href="/">Ask<span>News</span></a>
+    <nav class="nav">
+      {% for key, href, label in nav_items %}<a href="{{ href }}" class="{{ 'on' if page == key else '' }}">{{ label }}</a>{% endfor %}
+    </nav>
+    <div class="lang">
+      {% for code in languages %}<a href="/lang/{{ code }}?next={{ path | urlencode }}" class="{{ 'on' if lang == code else '' }}">{{ t('lang.' ~ code) }}</a>{% endfor %}
+    </div>
+  </div>
+</header>
+<nav class="tabbar">
+  {% for key, href, label in nav_items %}<a href="{{ href }}" class="{{ 'on' if page == key else '' }}"><i></i>{{ label }}</a>{% endfor %}
+</nav>
+<main>
+{% block content %}{% endblock %}
+{% if page != 'ask' %}
+<div class="wrap"><footer class="foot">
+  <span class="logo" style="font-size:16px">Ask<span>News</span></span>
+  <span>{{ t('footer.note') }}</span>
+  <a href="https://github.com/aspirit/asknews" rel="noopener">{{ t('footer.source') }}</a>
+</footer></div>
+{% endif %}
+</main>
+<script src="/static/app.js" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

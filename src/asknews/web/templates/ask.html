@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import askbox with context %}
+{% block title %}{{ t('nav.ask') }} &middot; {{ t('site.name') }}{% endblock %}
+{% block content %}
+<div class="wrap" id="ask-root" data-lang="{{ lang }}" data-question="{{ question }}" data-doc="{{ doc_id or '' }}">
+  <div class="askpage solo" id="ask-empty">
+    <div class="empty">
+      <div class="kick">{{ t('nav.ask') }}</div>
+      <p>{{ t('ask.empty') }}</p>
+      {{ askbox(value=question, autofocus=True, doc_id=doc_id) }}
+      <div class="fu" style="margin-top:8px">
+        <div class="sec-h"><h3>{{ t('ask.try') }}</h3></div>
+        <div class="lst">{% for q in questions %}<button type="button" data-ask="{{ q }}">{{ q }}</button>{% endfor %}</div>
+      </div>
+    </div>
+  </div>
+  <div class="askpage" id="ask-thread" hidden>
+    <div>
+      <div id="turns"></div>
+      <div class="composer"><div class="row">
+        {{ askbox(placeholder=t('ask.placeholder_followup'), doc_id=doc_id) }}
+        <a class="newq" href="/ask">{{ t('ask.new_question') }}</a>
+      </div></div>
+    </div>
+    <aside class="rail" id="rail" hidden>
+      <div class="sec-h"><h3>{{ t('ask.sources') }} &middot; <span id="rail-count"></span></h3></div>
+      <div class="lst" id="rail-list"></div>
+    </aside>
+  </div>
+</div>
+<template id="tpl-strings">{{ {
+  'searching': t('ask.searching'), 'reading': t('ask.reading'), 'writing': t('ask.writing'),
+  'your_question': t('ask.your_question'), 'sources_used': t('ask.sources_used'),
+  'answered_in': t('ask.answered_in'), 'grounded': t('ask.grounded'), 'followups': t('ask.followups'),
+  'copy': t('ask.copy'), 'copied': t('ask.copied'), 'open_doc': t('ask.open_doc'), 'open_at': t('ask.open_at'),
+  'out_of_scope_kick': t('ask.out_of_scope_kick'), 'out_of_scope': t('ask.out_of_scope'),
+  'no_sources': t('ask.no_sources'), 'budget': t('ask.budget'), 'rate': t('ask.rate'), 'error': t('ask.error'),
+  'examples': t('ask.examples'), 'sources': t('ask.sources'), 'ai_tip': t('ai.tip'),
+  'kinds': {'press_conference': t('kind.press_conference'), 'statement': t('kind.statement'), 'minutes': t('kind.minutes'), 'speech': t('kind.speech'), 'report': t('kind.report'), 'release': t('kind.release')},
+  'inst': {'fed': t.institution('fed', short=True), 'boj': t.institution('boj', short=True), 'ecb': t.institution('ecb', short=True), 'bis': t.institution('bis', short=True), 'bea': t.institution('bea', short=True), 'mof': t.institution('mof', short=True), 'fsa': t.institution('fsa', short=True), 'boe': t.institution('boe', short=True)},
+  'questions': questions
+} | tojson }}</template>
+{% endblock %}
+{% block scripts %}<script src="/static/ask.js" defer></script>{% endblock %}

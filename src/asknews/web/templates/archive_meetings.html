@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ai_tag, lang_badge, archive_header with context %}
+{% block title %}{{ t('archive.meetings') }} &middot; {{ t('site.name') }}{% endblock %}
+{% macro part(label, doc) %}
+<div class="part"><span class="pl">{{ label }}</span>
+  {% if doc %}<a href="/doc/{{ doc.id }}">{{ doc.title_in(lang)[0] }} <span class="pd">{{ t.date(doc.published_at, form='short') }}</span> {{ lang_badge(doc) }}</a>{% else %}<span class="pn">{{ t('meetings.pending') }}</span>{% endif %}
+</div>
+{% endmacro %}
+{% block content %}
+<div class="wrap">
+  {{ archive_header('meetings') }}
+  <div class="mtl">
+    <div class="mcols hd"><span></span><h3>{{ t.institution('fed') }}</h3><h3>{{ t.institution('boj') }}</h3></div>
+    {% for month, month_date in months %}
+    <div class="mcols">
+      <span class="mo">{{ t.date_only(month_date, form='month') }}</span>
+      {% for code in ['fed', 'boj'] %}
+      <div class="mcol">
+        {% set m = by_month[month].get(code) %}
+        {% if m %}
+        <details class="mcard" id="m-{{ m.key }}" {% if m.key == open_key %}open{% endif %}>
+          <summary class="mh">
+            <span class="md">{{ t.institution(code, short=True) }} &middot; {{ t.date(m.statement.published_at) }}</span>
+            <span class="mt"><b>{{ briefs[m.key].title_in(lang) if m.key in briefs else m.statement.title_in(lang)[0] }}</b>{% if m.key in briefs %} {{ ai_tag('ai.title') }}{% endif %}</span>
+            {% if m.decision %}<span class="mdec">{{ m.decision }}</span>{% endif %}
+            <span class="mx">+</span>
+          </summary>
+          <div class="mb">
+            {{ part(t('meetings.statement'), m.statement) }}
+            {{ part(t('meetings.press_conference'), m.press_conference) }}
+            {{ part(t('meetings.minutes'), m.minutes) }}
+            {% if code == 'boj' %}{{ part(t('meetings.opinions'), m.opinions) }}{{ part(t('meetings.outlook'), m.outlook) }}{% endif %}
+            {% if m.decision %}<div class="mext"><div class="mlbl">{{ t('meetings.decision') }} {{ ai_tag('ai.extracted') }}</div><ul><li><span>{{ m.decision }}</span>{% if m.statement %}<a class="c" href="/doc/{{ m.statement.id }}">{{ t('meetings.statement') }}</a>{% endif %}</li></ul></div>{% endif %}
+            {% if m.key in briefs %}<div class="mext"><div class="mlbl">{{ t('archive.meeting_brief') }} {{ ai_tag('ai.brief') }}</div><ul>{% for p in briefs[m.key].points_in(lang) %}<li><span>{{ p.text }}</span></li>{% endfor %}</ul><a class="btn ghost" href="/brief/{{ briefs[m.key].id }}">{{ t('archive.meeting_brief') }} &rarr;</a></div>{% endif %}
+          </div>
+        </details>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

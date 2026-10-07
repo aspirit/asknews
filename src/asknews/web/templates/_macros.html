@@ -1,0 +1,65 @@
+{% macro ai_tag(key, small=False) -%}
+<span class="ai{{ ' sm' if small else '' }}" title="{{ t('ai.tip') }}"><i>AI</i>{% if not small %}{{ t(key) }}{% endif %}</span>
+{%- endmacro %}
+
+{% macro lang_badge(doc) -%}
+<span class="lb{{ ' x' if doc.lang != lang else '' }}" title="{{ t('doc.orig_' ~ doc.lang) if doc.lang != lang else '' }}">{{ doc.lang | upper }}</span>
+{%- endmacro %}
+
+{% macro doc_title(doc) -%}
+{% set title, translated = doc.title_in(lang) %}{{ title }}{% if translated %} {{ ai_tag('ai.translation') }}{% endif %}
+{%- endmacro %}
+
+{% macro meta_line(doc, short=True) -%}
+<div class="m"><b>{{ t.institution(doc.institution, short=short) }}</b><span>{{ t.kind(doc.kind) }}</span><span>{{ t.date(doc.published_at) }}</span>{{ lang_badge(doc) }}</div>
+{%- endmacro %}
+
+{% macro archive_row(doc) -%}
+<a class="arow" href="/doc/{{ doc.id }}">
+  {{ meta_line(doc) }}
+  <h4>{{ doc_title(doc) }}</h4>
+  {% set summary = doc.summary_in(lang) %}
+  {% if summary %}<p>{{ ai_tag('ai.summary', small=True) }} {{ summary }}</p>{% endif %}
+</a>
+{%- endmacro %}
+
+{% macro list_row(doc) -%}
+<a class="rowi" href="/doc/{{ doc.id }}">
+  <span class="d">{{ t.date(doc.published_at) }}</span>
+  <span class="o">{{ t.institution(doc.institution, short=True) }}</span>
+  <div class="tx"><h4>{{ doc_title(doc) }}</h4>{% set summary = doc.summary_in(lang) %}{% if summary %}<p>{{ ai_tag('ai.summary', small=True) }} {{ summary }}</p>{% endif %}</div>
+  <span class="tp">{{ t.kind(doc.kind) }} {{ lang_badge(doc) }}</span>
+</a>
+{%- endmacro %}
+
+{% macro video_card(doc, why=None, row=False) -%}
+<a class="vcard{{ ' row' if row else '' }}" href="/doc/{{ doc.id }}">
+  <div class="vth"><span class="pl"></span>{% if doc.duration_sec %}<span class="du">{{ doc.duration_sec | duration }}</span>{% endif %}</div>
+  <div class="vtx">
+    <div class="m"><b>{{ t.institution(doc.institution, short=True) }}</b><span>{{ t.date(doc.published_at) }}</span>{{ lang_badge(doc) }}</div>
+    <h4>{% if doc.speaker %}{{ doc.speaker }}<span class="role">{{ '' if row else ' &middot; ' }}{{ doc.speaker_role or '' }}</span>{% else %}{{ doc_title(doc) }}{% endif %}</h4>
+    <div class="vf">{% if doc.duration_sec %}<span>{{ doc.duration_sec | duration }}</span>{% endif %}<span class="{{ 'yes' if doc.timestamped else '' }}">{{ '&#9679; ' ~ t('archive.has_timestamps') if doc.timestamped else '&#9675; ' ~ t('archive.no_timestamps') }}</span></div>
+    {% if why %}<p class="why">{{ why }}</p>{% endif %}
+  </div>
+</a>
+{%- endmacro %}
+
+{% macro askbox(value='', placeholder=None, autofocus=False, doc_id=None) -%}
+<form class="askbox" action="/ask" method="get" data-ask-form>
+  <input type="text" name="q" value="{{ value }}" placeholder="{{ placeholder or t('ask.placeholder') }}" maxlength="500" required {% if autofocus %}autofocus{% endif %}>
+  {% if doc_id %}<input type="hidden" name="doc" value="{{ doc_id }}">{% endif %}
+  <button type="submit">{{ t('ask.button') }} &rarr;</button>
+</form>
+{%- endmacro %}
+
+{% macro subnav(section) -%}
+<nav class="subnav">
+  <a href="/archive" class="{{ 'on' if not section else '' }}">{{ t('archive.overview') }}</a>
+  {% for key in ['latest', 'briefs', 'videos', 'rankings', 'meetings'] %}<a href="/archive/{{ key }}" class="{{ 'on' if section == key else '' }}">{{ t('archive.' ~ key) }}</a>{% endfor %}
+</nav>
+{%- endmacro %}
+
+{% macro archive_header(section) -%}
+<div class="pg-h"><div class="kick">{{ t('archive.title') }}</div><h1>{{ t('archive.' ~ section) if section else t('archive.title') }}</h1></div>
+{{ subnav(section) }}
+{%- endmacro %}

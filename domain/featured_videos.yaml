@@ -1,0 +1,33 @@
+# Press conferences worth watching, shown on the home page. Each entry names
+# a document by publisher and identifier and gives a one-line reason.
+videos:
+  - institution: boj
+    external_id: kk260924a
+    why:
+      en: The policy rate is raised to 1.25%, with two dissents.
+      ja: 政策金利を1.25%へ引き上げ。反対2名。
+  - institution: fed
+    external_id: "20260916"
+    why:
+      en: The most recent FOMC press conference.
+      ja: 直近のFOMC記者会見。
+  - institution: boj
+    external_id: kk240321a
+    why:
+      en: Negative interest rates and yield curve control come to an end.
+      ja: マイナス金利とイールドカーブ・コントロールの終了。
+  - institution: fed
+    external_id: "20240918"
+    why:
+      en: The first rate cut since 2020, by half a percentage point.
+      ja: 2020年以来初の利下げ、0.5ポイント。
+  - institution: boj
+    external_id: kk240801a
+    why:
+      en: The rate rises to 0.25% and a plan to reduce bond purchases is set out.
+      ja: 政策金利を0.25%に、国債買入れの減額計画を決定。
+  - institution: fed
+    external_id: "20220316"
+    why:
+      en: The first rate increase since 2018 opens the tightening cycle.
+      ja: 2018年以来初の利上げ、引き締め局面の始まり。

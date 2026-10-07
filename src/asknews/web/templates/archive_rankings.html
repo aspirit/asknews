@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_macros.html" import archive_header with context %}
+{% block title %}{{ t('archive.rankings') }} &middot; {{ t('site.name') }}{% endblock %}
+{% macro board(title, rows, unit, extra=None) %}
+<div class="board">
+  <div class="sec-h"><h3>{{ title }}</h3>{{ extra or '' }}</div>
+  {% set top = (rows | map(attribute='value') | max) if rows else 1 %}
+  {% for r in rows %}
+  <div class="rkr">
+    <span class="n">{{ loop.index }}</span>
+    <div class="nm"><b>{{ r.name }}</b>{% if r.sub %}<span>{{ r.sub }}</span>{% endif %}<i style="width:{{ (100 * r.value / (top or 1)) | round(1) }}%"></i></div>
+    <span class="rkc">{{ r.value }}<em> {{ unit }}</em></span>
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}
+{% block content %}
+<div class="wrap">
+  {{ archive_header('rankings') }}
+  <p class="cnt">{{ t('rankings.note') }}</p>
+  {% set toggle %}<div class="seg2">{% for p in periods %}<a href="/archive/rankings?days={{ p }}" class="{{ 'on' if days == p else '' }}">{{ t('rankings.period.' ~ p) }}</a>{% endfor %}</div>{% endset %}
+  {% set speaker_rows = [] %}
+  {% for s in speakers %}{% set _ = speaker_rows.append({'name': s.name, 'value': s.speeches + s.press_conferences, 'sub': t.institution(s.institution, short=True) ~ ' &middot; ' ~ (s.role or '') ~ ' &middot; ' ~ s.speeches ~ ' ' ~ t('rankings.speeches') ~ ', ' ~ s.press_conferences ~ ' ' ~ t('rankings.press_conferences') ~ (', ' ~ s.minutes_spoken ~ ' ' ~ t('rankings.minutes') if s.minutes_spoken else '')}) %}{% endfor %}
+  {% set publisher_rows = [] %}
+  {% for p in publishers %}{% set _ = publisher_rows.append({'name': t.institution(p.code), 'value': p.total, 'sub': p.by_kind.items() | map('join', ' ') | join(', ')}) %}{% endfor %}
+  {% set topic_rows = [] %}
+  {% for tr in topics %}{% set _ = topic_rows.append({'name': tr.topic.label.get(lang, tr.topic.slug), 'value': tr.documents, 'sub': ('+' if tr.change > 0 else '') ~ tr.change}) %}{% endfor %}
+  <div class="rk">
+    {{ board(t('rankings.speakers'), speaker_rows, t('rankings.speakers_u'), toggle) }}
+    {{ board(t('rankings.publishers'), publisher_rows, t('rankings.publishers_u')) }}
+    {{ board(t('rankings.topics'), topic_rows, t('rankings.topics_u')) }}
+  </div>
+</div>
+{% endblock %}

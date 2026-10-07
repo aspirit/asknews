@@ -1,0 +1,60 @@
+# Sample questions offered on the home page and in the Ask page's empty state.
+questions:
+  en:
+    - What did the Fed decide at its most recent meeting?
+    - How did Chair Powell explain the September 2024 rate cut?
+    - What has the Bank of Japan said about the yen and prices?
+    - Why did the Bank of Japan end negative interest rates in March 2024?
+  ja:
+    - 日銀は直近の決定会合で何を決めましたか？
+    - 植田総裁は円安が物価に与える影響についてどう述べましたか？
+    - FRBは2024年9月の利下げをどう説明しましたか？
+    - 2024年3月のマイナス金利解除の理由は？
+# Questions suggested on a document page, by document kind.
+document_questions:
+  press_conference:
+    en:
+      - "What was decided at this meeting?"
+      - "What did reporters ask about most?"
+      - "How was the outlook described?"
+    ja:
+      - "この会合で何が決まりましたか？"
+      - "記者からの質問で多かったテーマは？"
+      - "見通しはどう説明されましたか？"
+  statement:
+    en:
+      - "What was decided?"
+      - "How did the vote go?"
+      - "What does the statement say about inflation?"
+    ja:
+      - "何が決まりましたか？"
+      - "票決はどうなりましたか？"
+      - "物価についてどう書かれていますか？"
+  minutes:
+    en:
+      - "What did participants disagree about?"
+      - "How was the outlook assessed?"
+      - "What risks were discussed?"
+    ja:
+      - "どの点で意見が分かれましたか？"
+      - "見通しはどう評価されましたか？"
+      - "どんなリスクが議論されましたか？"
+  speech:
+    en:
+      - "What is the main argument of this speech?"
+      - "What does the speaker say about policy?"
+    ja:
+      - "この講演の主な論点は？"
+      - "金融政策についてどう述べていますか？"
+  report:
+    en:
+      - "What is the central projection?"
+      - "What are the main risks?"
+    ja:
+      - "中心的な見通しは？"
+      - "主なリスクは？"
+  release:
+    en:
+      - "What does this release announce?"
+    ja:
+      - "この発表の内容は？"

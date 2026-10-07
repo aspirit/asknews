@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "_macros.html" import archive_row, archive_header with context %}
+{% block title %}{{ t('archive.title') }} &middot; {{ t('site.name') }}{% endblock %}
+{% block content %}
+<div class="wrap">
+  {{ archive_header(None) }}
+  <div class="hub">
+    {% for key, count in [('latest', counts.documents), ('briefs', counts.briefs), ('videos', counts.videos), ('rankings', 3), ('meetings', counts.meetings)] %}
+    <a href="/archive/{{ key }}" class="tile"><b>{{ '%02d' | format(count) }}</b><h4>{{ t('archive.' ~ key) }} &rarr;</h4><p>{{ t('archive.' ~ key ~ '_d') }}</p></a>
+    {% endfor %}
+  </div>
+  <div class="sec-h" style="margin-top:48px"><h3>{{ t('archive.latest') }}</h3><a href="/archive/latest">{{ t('archive.latest') }} &rarr;</a></div>
+  <div class="arows two">{% for doc in latest %}{{ archive_row(doc) }}{% endfor %}</div>
+</div>
+{% endblock %}

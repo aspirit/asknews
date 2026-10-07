@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_macros.html" import video_card, archive_header with context %}
+{% block title %}{{ t('archive.videos') }} &middot; {{ t('site.name') }}{% endblock %}
+{% block content %}
+<div class="wrap">
+  {{ archive_header('videos') }}
+  <div class="filt"><div class="topics">
+    <a href="/archive/videos" class="{{ 'on' if not institution else '' }}">{{ t('archive.all') }}</a>
+    {% for code in institutions %}<a href="/archive/videos?institution={{ code }}" class="{{ 'on' if institution == code else '' }}">{{ t.institution(code, short=True) }}</a>{% endfor %}
+  </div></div>
+  <div class="cnt">{{ items | length }} {{ t('archive.videos') | lower }}</div>
+  <div class="vgrid">{% for doc in items %}{{ video_card(doc) }}{% endfor %}</div>
+</div>
+{% endblock %}

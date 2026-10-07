@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ai_tag with context %}
+{% block title %}{{ t('nav.about') }} &middot; {{ t('site.name') }}{% endblock %}
+{% block content %}
+<div class="wrap"><div class="about">
+  <div class="kick">{{ t('about.kick') }}</div>
+  <h1>{{ t('about.h') }}</h1>
+  <p class="lede">{{ t('about.p') }}</p>
+  <div class="sec-h"><h3>{{ t('about.how_h') }}</h3></div>
+  <div class="how" style="margin-top:20px">{% for step in t.get('about.how') %}<div><b>0{{ loop.index }}</b><h4>{{ step[0] }}</h4><p>{{ step[1] }}</p></div>{% endfor %}</div>
+  <div class="sec-h"><h3>{{ t('about.rules_h') }}</h3></div>
+  <div class="rules" style="margin-bottom:56px">{% for rule in t.get('about.rules') %}<div><h4>{{ rule[0] }}</h4><p>{{ rule[1] }}</p></div>{% endfor %}</div>
+  <div class="sec-h"><h3>{{ t('about.sources_h') }}</h3></div>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr>{% for col in t.get('about.sources_cols') %}<th>{{ col }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for row in t.get('about.sources') %}<tr><td><b>{{ row[0] }}</b></td><td>{{ row[1] }}</td><td><span class="lb">{{ row[2] }}</span></td><td>{{ row[3] }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <p class="cnt" style="margin-bottom:56px">{{ t('about.sources_note') }}</p>
+  <div class="sec-h"><h3>{{ t('about.ai_h') }}</h3></div>
+  <p class="aip">{{ t('about.ai_p') }}</p>
+  <div class="rules">{% for item in t.get('about.ai_list') %}<div><h4>{{ ai_tag(item[0]) }}</h4><p>{{ item[1] }}</p></div>{% endfor %}</div>
+  <div class="sec-h" style="margin-top:56px"><h3>{{ t('about.code_h') }}</h3></div>
+  <p class="aip">{{ t('about.code_p') }} <a href="https://github.com/aspirit/asknews" rel="noopener">github.com/aspirit/asknews</a></p>
+</div></div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ai_tag, lang_badge, askbox with context %}
+{% set title, translated = doc.title_in(lang) %}
+{% block title %}{{ title }} &middot; {{ t('site.name') }}{% endblock %}
+{% block content %}
+<div class="wrap">
+  <div class="story">
+    <article lang="{{ doc.lang }}" id="doc" data-provider="{{ doc.media_provider or '' }}" data-media-id="{{ doc.media_id or '' }}" data-start="{{ start or '' }}">
+      <a class="back" href="{{ '/archive/videos' if doc.media_provider else '/archive/latest' }}">&larr; {{ t('doc.back') }}</a>
+      <div class="meta"><b>{{ t.institution(doc.institution) }}</b><span>{{ t.kind(doc.kind) }}</span><span>{{ t.date(doc.published_at) }}</span>{% if doc.duration_sec %}<span>{{ doc.duration_sec | duration }}</span>{% endif %}{% if doc.speaker %}<span>{{ doc.speaker }}{% if doc.speaker_role %}, {{ doc.speaker_role }}{% endif %}</span>{% endif %}</div>
+      <div class="dtitle">
+        <h1 lang="{{ lang if translated else doc.lang }}">{{ title }}</h1>
+        {% if doc.lang != lang %}<div class="dflags"><span class="lnote">{{ t('doc.orig_' ~ doc.lang) }}</span>{% if translated %}{{ ai_tag('ai.translation') }}{% endif %}</div>{% endif %}
+        {% if translated %}<p class="otitle" lang="{{ doc.lang }}">{{ doc.title }}</p>{% endif %}
+      </div>
+      {% if doc.media_provider == 'brightcove' %}
+      <div class="player" id="player">
+        <video-js id="bc-player" data-account="{{ meta.get('brightcove_account', '66043936001') }}" data-player="default" data-embed="default" data-video-id="{{ doc.media_id }}" controls style="width:100%;height:100%;position:absolute;inset:0"></video-js>
+      </div>
+      {% elif doc.media_provider == 'youtube' %}
+      <div class="player" id="player"><div id="yt-player" style="position:absolute;inset:0"></div></div>
+      {% endif %}
+      {% if doc.media_provider %}
+      <div class="sec-h" style="margin-top:32px"><h3>{{ t('doc.transcript') }}</h3><span class="vf{{ '' if doc.timestamped else ' no' }}">{{ '&#9679; ' ~ t('archive.has_timestamps') if doc.timestamped else '&#9675; ' ~ t('archive.no_timestamps') }}</span></div>
+      <p class="cnt" style="padding:10px 0 6px">{{ t('doc.transcript_note') if doc.timestamped else t('doc.qa_note') }}</p>
+      {% if doc.timestamped %}
+      <div class="segs">{% for s in segments %}
+        <div class="seg{{ ' q' if s.speaker and s.speaker != doc.speaker and 'Chair' not in (s.speaker or '') and 'Governor' not in (s.speaker or '') else '' }}" id="s{{ s.position + 1 }}" data-start="{{ s.start_sec if s.start_sec is not none else '' }}" data-end="{{ s.end_sec if s.end_sec is not none else '' }}">
+          <button type="button" class="tm" data-seek="{{ s.start_sec | int if s.start_sec is not none else '' }}">{{ s.start_sec | duration }}</button>
+          <div><div class="sp">{{ s.speaker or '' }}</div><p>{{ s.text }}</p></div>
+        </div>{% endfor %}
+      </div>
+      {% else %}
+      <div class="qas">{% for s in segments %}
+        <div class="ql{{ ' a' if s.speaker != 'Question' else '' }}" id="s{{ s.position + 1 }}"><span class="qk">{{ t('doc.question') if s.speaker == 'Question' else t('doc.answer') }}</span><div><div class="sp">{{ t('doc.reporter') if s.speaker == 'Question' else (s.speaker or '') }}</div><p>{{ s.text }}</p></div></div>{% endfor %}
+      </div>
+      {% endif %}
+      {% else %}
+      {% set summary = doc.summary_in(lang) %}
+      {% if summary %}<div class="aisum" lang="{{ lang }}">{{ ai_tag('ai.summary') }}<p>{{ summary }}</p></div>{% endif %}
+      <div class="sec-h" style="margin-top:32px"><h3>{{ t('doc.full_text') }}</h3></div>
+      <div class="dsecs">{% for s in segments %}
+        <section id="s{{ s.position + 1 }}" class="dsec"><h3><a class="anc" href="#s{{ s.position + 1 }}">&sect;{{ s.position + 1 }}</a>{% if s.speaker %}{{ s.speaker }}{% endif %}</h3>{% for para in s.text.split('\n\n') %}<p>{{ para }}</p>{% endfor %}</section>{% endfor %}
+      </div>
+      {% endif %}
+    </article>
+    <aside class="drail">
+      <div class="askcard">
+        <div class="kick">{{ t('doc.ask_about') }}</div>
+        <div class="fu" style="margin-top:0"><div class="lst">{% for q in questions %}<a href="/ask?q={{ (q ~ ' (' ~ title ~ ')') | urlencode }}&doc={{ doc.id }}">{{ q }}</a>{% endfor %}</div></div>
+        {{ askbox(doc_id=doc.id) }}
+      </div>
+      {% if meeting %}<div class="railbox"><span class="rl">{{ t('doc.meeting') }}</span><a href="/archive/meetings?open={{ meeting.key }}#m-{{ meeting.key }}"><b>{{ t.institution(meeting.institution, short=True) }} &middot; {{ t.date(meeting.statement.published_at) }}</b></a>{% if meeting.decision %}<span class="rs">{{ t('meetings.decision') }}: {{ meeting.decision }} {{ ai_tag('ai.extracted') }}</span>{% endif %}</div>{% endif %}
+      <div class="railbox"><span class="rl">{{ t('doc.original') }}</span><a href="{{ doc.source_url }}" target="_blank" rel="noopener">{{ doc.source_url.split('/')[2] }} &nearr;</a><span class="rs">{{ t('doc.opens_official') }} &middot; {{ lang_badge(doc) }}</span></div>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}{% if doc.media_provider %}<script src="/static/player.js" defer></script>{% endif %}{% endblock %}

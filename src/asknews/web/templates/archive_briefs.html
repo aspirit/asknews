@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ai_tag, archive_header with context %}
+{% block title %}{{ t('archive.briefs') }} &middot; {{ t('site.name') }}{% endblock %}
+{% block content %}
+<div class="wrap">
+  {{ archive_header('briefs') }}
+  <div class="filt"><div class="topics">
+    <a href="/archive/briefs" class="{{ 'on' if not kind else '' }}">{{ t('archive.all') }}</a>
+    <a href="/archive/briefs?kind=daily" class="{{ 'on' if kind == 'daily' else '' }}">{{ t('archive.daily') }}</a>
+    <a href="/archive/briefs?kind=meeting" class="{{ 'on' if kind == 'meeting' else '' }}">{{ t('archive.meeting_brief') }}</a>
+  </div></div>
+  <div class="cnt">{{ briefs | length }} {{ t('archive.results') }}</div>
+  <div class="rows">
+    {% for b in briefs %}
+    <a class="rowi" href="/brief/{{ b.id }}">
+      <span class="d">{{ b.brief_date.strftime('%Y-%m-%d') }}</span>
+      <span class="o">{{ t('archive.daily') if b.kind == 'daily' else t('archive.meeting_brief') }}</span>
+      <div class="tx"><h4>{{ b.title_in(lang) }} {{ ai_tag('ai.brief') }}</h4>{% set pts = b.points_in(lang) %}{% if pts %}<p>{{ pts[0].text }}</p>{% endif %}</div>
+      <span class="tp">{% for code in b.institutions %}{{ t.institution(code, short=True) }}{{ ' &middot; ' if not loop.last }}{% endfor %}</span>
+    </a>
+    {% else %}<p class="cnt">{{ t('archive.no_briefs') }}</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}
