@@ -26,13 +26,19 @@ steps; see the commit history for what exists so far.
 
 ## Development
 
-Requirements: [uv](https://docs.astral.sh/uv/) and Python 3.13 (uv installs
-it on demand).
+Requirements: [uv](https://docs.astral.sh/uv/), Python 3.13 (uv installs it
+on demand) and Docker for the local PostgreSQL instance.
 
 ```sh
 uv sync --all-groups
+cp .env.example .env
+docker compose up -d --wait        # PostgreSQL 17 with pgvector
+uv run python -m asknews.db.migrate
 make check
 ```
+
+`make check` runs lint, type checks and tests. Database-backed tests use
+`TEST_DATABASE_URL` from `.env.example` and are skipped when it is unset.
 
 ## License
 
