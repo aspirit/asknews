@@ -1,0 +1,13 @@
+# Names of recurring documents in both languages. Translations of titles and
+# summaries must render them consistently; the summariser quotes this list.
+terms:
+  - {ja: 金融政策決定会合, en: Monetary Policy Meeting}
+  - {ja: 議事要旨, en: Minutes of the Monetary Policy Meeting}
+  - {ja: 主な意見, en: Summary of Opinions}
+  - {ja: 展望レポート, en: Outlook for Economic Activity and Prices}
+  - {ja: 記者会見, en: press conference}
+  - {ja: 当面の金融政策運営について, en: Statement on Monetary Policy}
+  - {ja: 無担保コールレート, en: uncollateralized overnight call rate}
+  - {ja: FOMC声明, en: FOMC statement}
+  - {ja: FOMC議事要旨, en: FOMC minutes}
+  - {ja: 経済見通し, en: Summary of Economic Projections}

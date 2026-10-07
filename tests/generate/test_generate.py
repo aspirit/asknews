@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,6 +12,7 @@ from asknews.generate.briefs import daily_brief, meeting_brief, meetings_without
 from asknews.generate.summaries import Run, summarize_pending
 
 pytestmark = pytest.mark.integration
+REPO_ROOT = Path(__file__).resolve().parents[2]
 Api = tuple[TestClient, dict[str, int], ScriptedLLM]
 
 SUMMARY_REPLY = (
@@ -25,6 +27,18 @@ BRIEF_REPLY = (
     ' {"en": "No documents here.", "ja": "", "documents": [9]},'
     ' {"en": "Inflation remains elevated.", "ja": "物価は高止まり。", "documents": [1, 2]}]}'
 )
+
+
+def test_summary_prompt_quotes_the_glossary() -> None:
+    from asknews.domain_config import load_glossary
+    from asknews.generate.summaries import SYSTEM
+
+    pairs = load_glossary(REPO_ROOT / "domain" / "glossary.yaml")
+    assert ("議事要旨", "Minutes of the Monetary Policy Meeting") in pairs
+    rendered = SYSTEM.format(
+        lang="Japanese", other="English", glossary="; ".join(f"{j} = {e}" for j, e in pairs)
+    )
+    assert "議事要旨 = Minutes of the Monetary Policy Meeting" in rendered
 
 
 def test_summaries_store_text_and_translation(api: Api) -> None:
@@ -47,7 +61,8 @@ def test_summaries_store_text_and_translation(api: Api) -> None:
         ).fetchone()
         assert row is not None
         assert row["summary"].startswith("The Committee lowered")
-        assert (row["lang"], row["title"], row["summary_model"]) == ("ja", "FOMC声明", "scripted")
+        assert (row["lang"], row["summary_model"]) == ("ja", "scripted")
+        assert row["title"].startswith("FOMC声明")  # the pattern title outranks the model's
         assert summarize_pending(conn, ScriptedLLM(), limit=10) == Run(0, 0.0)
     # the translation reaches the Japanese interface
     page = client.get(f"/ja/doc/{ids['statement']}").text

@@ -12,6 +12,7 @@ from typing import Any
 from asknews.answer.llm import LLM, Completion
 from asknews.budget import generation_allowed, record_usage
 from asknews.db.connection import Connection, connect
+from asknews.domain_config import glossary
 from asknews.generate.common import LANGUAGE_NAMES, clip, other_language, parse_json_object
 from asknews.settings import get_settings
 
@@ -25,7 +26,8 @@ Given one document, reply with JSON only:
 {{"summary": "...", "title_translation": "...", "summary_translation": "..."}}
 - summary: one or two sentences in {lang}, stating what the document decides, reports or \
 argues. Use only the document's own content; keep numbers and dates exact; no evaluation.
-- title_translation: the document's title rendered in {other}.
+- title_translation: the document's title rendered in {other}. Render document names as \
+in this list: {glossary}.
 - summary_translation: the summary rendered in {other}.
 Return nothing but the JSON object."""
 
@@ -78,15 +80,21 @@ def user_message(doc: dict[str, Any]) -> str:
     )
 
 
-def summarize_document(llm: LLM, doc: dict[str, Any]) -> Generated | None:
+def summarize_document(llm: LLM, doc: dict[str, Any]) -> tuple[Generated | None, Completion]:
+    """The generated entry, or None when the reply was unusable, and the
+    completion itself, which cost money either way."""
     other = other_language(doc["lang"])
-    system = SYSTEM.format(lang=LANGUAGE_NAMES[doc["lang"]], other=LANGUAGE_NAMES[other])
+    system = SYSTEM.format(
+        lang=LANGUAGE_NAMES[doc["lang"]],
+        other=LANGUAGE_NAMES[other],
+        glossary="; ".join(f"{ja} = {en}" for ja, en in glossary()),
+    )
     completion = llm.complete(system=system, user=user_message(doc), max_tokens=600)
     data = parse_json_object(completion.text)
     summary = str(data.get("summary") or "").strip()
     if not summary:
         LOG.warning("document %s: no summary in reply", doc["id"])
-        return None
+        return None, completion
     return Generated(
         int(doc["id"]),
         summary,
@@ -94,7 +102,7 @@ def summarize_document(llm: LLM, doc: dict[str, Any]) -> Generated | None:
         str(data.get("title_translation") or "").strip() or str(doc["title"]),
         str(data.get("summary_translation") or "").strip(),
         completion,
-    )
+    ), completion
 
 
 def store(conn: Connection, generated: Generated) -> None:
@@ -108,7 +116,11 @@ def store(conn: Connection, generated: Generated) -> None:
             INSERT INTO document_translations (document_id, lang, title, summary, model)
             VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT (document_id, lang) DO UPDATE
-               SET title = EXCLUDED.title, summary = EXCLUDED.summary, model = EXCLUDED.model,
+               SET title = CASE WHEN document_translations.model = 'pattern'
+                                THEN document_translations.title ELSE EXCLUDED.title END,
+                   summary = EXCLUDED.summary,
+                   model = CASE WHEN document_translations.model = 'pattern'
+                                THEN document_translations.model ELSE EXCLUDED.model END,
                    generated_at = now()
             """,
             (
@@ -138,15 +150,13 @@ def summarize_pending(
     for doc in pending_documents(conn, kinds=kinds, limit=limit):
         if not generation_allowed(conn, budget):
             return Run(done, cost, budget_reached=True)
-        generated = summarize_document(llm, doc)
+        generated, completion = summarize_document(llm, doc)
+        record_usage(conn, purpose="summary", completion=completion, reference=str(doc["id"]))
+        cost += completion.cost_usd
         if generated is None:
             continue
-        record_usage(
-            conn, purpose="summary", completion=generated.completion, reference=str(doc["id"])
-        )
         store(conn, generated)
         done += 1
-        cost += generated.completion.cost_usd
     return Run(done, cost)
 
 
