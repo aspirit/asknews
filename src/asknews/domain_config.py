@@ -48,9 +48,9 @@ class SpeakerDirectory:
             for spec in candidates:
                 if spec.tenure and spec.tenure[0] <= when <= (spec.tenure[1] or date.max):
                     return spec
-            dated = [spec for spec in candidates if spec.tenure is None]
-            if dated:
-                return dated[0]
+            # Every candidate has a tenure and none covers the date: a namesake we
+            # do not know yet, not the person on record.
+            candidates = [spec for spec in candidates if spec.tenure is None]
         return candidates[0] if candidates else None
 
     def get(self, slug: str) -> SpeakerSpec | None:

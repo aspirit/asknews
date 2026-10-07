@@ -3,7 +3,8 @@
 Regular post-meeting press conferences are HTML pages since 2018 and PDFs
 before that; other press conferences (deputy governors, board members) are
 PDFs. All share one structure: a title, the conference date, then
-question-and-answer blocks introduced by （問） and （答）.
+question-and-answer blocks introduced by （問） and （答）, or 【問】 and 【答】
+with an opening 【冒頭発言】 statement at joint press conferences abroad.
 """
 
 from __future__ import annotations
@@ -54,9 +55,12 @@ _ROW = re.compile(
     re.S,
 )
 _TAGS = re.compile(r"<[^>]+>")
-_MARKER = re.compile(r"[（(]\s*([問答])\s*[）)]")
-_MONTH_DAY_PAREN = re.compile(r"[（(]\d{1,2}月\d{1,2}日[）)]")
+# （問）/（答） in most summaries; 【問】/【答】 and an opening 【冒頭発言】 in joint
+# press conferences held abroad.
+_MARKER = re.compile(r"[（(【]\s*(問|答|冒頭発言)\s*[）)】]")
+_MONTH_DAY_IN_PAREN = re.compile(r"(?<=[（(・])(\d{1,2}月\d{1,2}日)(?=[）)])")
 _GOVERNOR_TITLE = re.compile(r"^総裁")
+_ACTING = re.compile(r"([^（(・]+?)副総裁代理")
 _HEADER_NOISE = ("日本銀行", "PDF版ダウンロード", "PDF")
 
 
@@ -127,21 +131,23 @@ def event_date(title: str, body: str, posted: date) -> date:
 
 def event_title(title: str, when: date) -> str:
     """``総裁定例記者会見（12月19日）`` -> ``総裁定例記者会見（2025年12月19日）``."""
-    dated = f"（{when.year}年{when.month}月{when.day}日）"
-    return (
-        _MONTH_DAY_PAREN.sub(dated, title) if _MONTH_DAY_PAREN.search(title) else f"{title}{dated}"
-    )
+    dated = f"{when.year}年{when.month}月{when.day}日"
+    if _MONTH_DAY_IN_PAREN.search(title):
+        return _MONTH_DAY_IN_PAREN.sub(dated, title, count=1)
+    return f"{title}（{dated}）"
 
 
 def resolve_speaker(
     conn: Connection, directory: SpeakerDirectory, title: str, when: date
 ) -> tuple[int | None, str | None]:
     """``(speaker_id, display name)`` for the person holding the conference."""
-    spec = (
-        directory.head_on(INSTITUTION, when)
-        if _GOVERNOR_TITLE.match(title)
-        else directory.find(INSTITUTION, title, when=when)
-    )
+    acting = _ACTING.search(title)
+    if acting:  # a deputy governor standing in for the governor
+        spec = directory.find(INSTITUTION, acting.group(1), when=when)
+    elif _GOVERNOR_TITLE.match(title):
+        spec = directory.head_on(INSTITUTION, when)
+    else:
+        spec = directory.find(INSTITUTION, title, when=when)
     if spec is None:
         LOG.warning("unknown speaker in title %r", title)
         return None, None

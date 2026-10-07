@@ -69,6 +69,20 @@ def test_event_date_and_title() -> None:
     )
     jan = kaiken.event_date("総裁記者会見（12月26日）", "", date(2026, 1, 6))
     assert jan == date(2025, 12, 26)
+    acting = "総裁定例記者会見（内田副総裁代理・6月16日）"
+    assert (
+        kaiken.event_title(acting, date(2026, 6, 16))
+        == "総裁定例記者会見（内田副総裁代理・2026年6月16日）"
+    )
+
+
+def test_namesake_outside_tenure_is_unknown_and_acting_deputy_is_found() -> None:
+    directory = load_speakers(REPO_ROOT / "domain" / "speakers.yaml")
+    assert directory.find("boj", "佐藤審議委員就任記者会見", when=date(2026, 6, 30)) is None
+    assert directory.find("boj", "佐藤審議委員記者会見", when=date(2015, 3, 5)).slug == "sato"  # type: ignore[union-attr]
+    match = kaiken._ACTING.search("総裁定例記者会見（内田副総裁代理・6月16日）")
+    assert match is not None
+    assert directory.find("boj", match.group(1), when=date(2026, 6, 16)).slug == "uchida"  # type: ignore[union-attr]
 
 
 def test_speaker_resolution_uses_tenure_for_governor() -> None:
