@@ -17,6 +17,7 @@ classifiers = [
   "Topic :: Text Processing :: Indexing",
 ]
 dependencies = [
+    "fastapi>=0.118",
     "httpx>=0.28",
     "psycopg[binary]>=3.2",
     "pydantic-settings>=2.10",
@@ -29,6 +30,13 @@ asknews = "asknews.cli:main"
 
 [project.urls]
 Repository = "https://github.com/aspirit/asknews"
+
+[project.optional-dependencies]
+model = [
+    "sentence-transformers>=5.1",
+    "torch>=2.6",
+    "uvicorn>=0.37",
+]
 
 [build-system]
 requires = ["hatchling>=1.27"]

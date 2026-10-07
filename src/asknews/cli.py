@@ -32,6 +32,10 @@ def build_parser() -> argparse.ArgumentParser:
     migrate.add_argument("--dsn", help="connection URL (default: DATABASE_URL)")
     migrate.set_defaults(func=_migrate)
 
+    from asknews.embed import worker
+
+    worker.add_cli(commands)
+
     ingest = commands.add_parser("ingest", help="fetch publications into the archive")
     sources = ingest.add_subparsers(dest="source", required=True)
     from asknews.ingest import feeds

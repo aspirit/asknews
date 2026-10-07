@@ -33,6 +33,18 @@ class Settings(BaseSettings):
         description="Local working directory for fetched sources and caches.",
     )
 
+    embedder: str = Field(
+        default="hash",
+        validation_alias="ASKNEWS_EMBEDDER",
+        description=(
+            "hash (deterministic stand-in), remote (embedding service) or local (in-process model)."
+        ),
+    )
+    embed_url: str = Field(
+        default="http://127.0.0.1:8201",
+        validation_alias="ASKNEWS_EMBED_URL",
+        description="Base URL of the embedding service when embedder=remote.",
+    )
     youtube_api_key: str | None = Field(
         default=None,
         validation_alias="YOUTUBE_API_KEY",
