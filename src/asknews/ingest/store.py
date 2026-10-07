@@ -46,6 +46,11 @@ class Media:
     duration_sec: int | None = None
 
 
+def clean_text(value: str | None) -> str | None:
+    """PostgreSQL text cannot hold NUL bytes; some PDF and HTML sources leak them."""
+    return value.replace(chr(0), "") if value is not None else None
+
+
 def institution_id(conn: Connection, code: str) -> int:
     row = conn.execute("SELECT id FROM institutions WHERE code = %s", (code,)).fetchone()
     if row is None:
@@ -94,10 +99,10 @@ def upsert_document(conn: Connection, doc: Document) -> int:
             doc.kind,
             doc.lang,
             doc.external_id,
-            doc.title,
+            clean_text(doc.title),
             doc.published_at,
             doc.source_url,
-            doc.body,
+            clean_text(doc.body),
             json.dumps(doc.meta, ensure_ascii=False),
             doc.speaker_id,
         ),
@@ -130,7 +135,7 @@ def replace_segments(conn: Connection, document_id: int, segments: list[Segment]
                 VALUES (%s, %s, %s, %s, %s, %s)
                 """,
                 [
-                    (document_id, s.position, s.text, s.speaker, s.start_sec, s.end_sec)
+                    (document_id, s.position, clean_text(s.text), s.speaker, s.start_sec, s.end_sec)
                     for s in segments
                 ],
             )

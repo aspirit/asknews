@@ -75,6 +75,13 @@ def test_replace_segments_skips_unchanged_content(conn: Connection) -> None:
     assert rows[0]["start_sec"] == 0.0
 
 
+def test_nul_bytes_are_removed_before_writing() -> None:
+    from asknews.ingest.store import clean_text
+
+    assert clean_text("a" + chr(0) + "b") == "ab"
+    assert clean_text(None) is None
+
+
 def test_segments_hash_depends_on_text_speaker_and_order() -> None:
     a = [Segment(0, "x", speaker="A"), Segment(1, "y")]
     assert segments_hash(a) == segments_hash(list(a))
