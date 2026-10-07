@@ -2,6 +2,10 @@
 <span class="ai{{ ' sm' if small else '' }}" title="{{ t('ai.tip') }}"><i>AI</i>{% if not small %}{{ t(key) }}{% endif %}</span>
 {%- endmacro %}
 
+{% macro decision_badge(d) -%}
+{% if d.change_bp %}{{ '%+d' % d.change_bp }} bp &rarr; {% elif d.change_bp == 0 %}{{ t('meetings.hold') }} &middot; {% endif %}{{ d.range_text }}
+{%- endmacro %}
+
 {% macro lang_badge(doc) -%}
 <span class="lb{{ ' x' if doc.lang != lang else '' }}" title="{{ t('doc.orig_' ~ doc.lang) if doc.lang != lang else '' }}">{{ doc.lang | upper }}</span>
 {%- endmacro %}

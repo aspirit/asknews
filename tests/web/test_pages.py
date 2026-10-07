@@ -94,6 +94,8 @@ def test_document_pages(api: Api) -> None:
     assert "Full text" in statement
     assert "player.js" not in statement
     assert "fed:20250917" in statement  # meeting link in the rail
+    assert "Decision(" not in statement  # the rail shows the badge, not the dataclass
+    assert "-25 bp &rarr; 4.00" in statement
     missing = client.get("/doc/999999")
     assert missing.status_code == 404
     assert "404" in missing.text

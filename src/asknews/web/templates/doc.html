@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import ai_tag, lang_badge, askbox with context %}
+{% from "_macros.html" import ai_tag, lang_badge, askbox, decision_badge with context %}
 {% set title, translated = doc.title_in(lang) %}
 {% block title %}{{ title }} &middot; {{ t('site.name') }}{% endblock %}
 {% block content %}
@@ -50,7 +50,7 @@
         <div class="fu" style="margin-top:0"><div class="lst">{% for q in questions %}<a href="{{ u('/ask?q=' ~ ((q ~ ' (' ~ title ~ ')') | urlencode) ~ '&doc=' ~ (doc.id)) }}">{{ q }}</a>{% endfor %}</div></div>
         {{ askbox(doc_id=doc.id) }}
       </div>
-      {% if meeting %}<div class="railbox"><span class="rl">{{ t('doc.meeting') }}</span><a href="{{ u('/archive/meetings?open=' ~ (meeting.key) ~ '#m-' ~ (meeting.key)) }}"><b>{{ t.institution(meeting.institution, short=True) }} &middot; {{ t.date(meeting.statement.published_at, meeting.institution) }}</b></a>{% if meeting.decision %}<span class="rs">{{ t('meetings.decision') }}: {{ meeting.decision }} {{ ai_tag('ai.extracted') }}</span>{% endif %}</div>{% endif %}
+      {% if meeting %}<div class="railbox"><span class="rl">{{ t('doc.meeting') }}</span><a href="{{ u('/archive/meetings?open=' ~ (meeting.key) ~ '#m-' ~ (meeting.key)) }}"><b>{{ t.institution(meeting.institution, short=True) }} &middot; {{ t.date(meeting.statement.published_at, meeting.institution) }}</b></a>{% if meeting.decision %}<span class="rs">{{ t('meetings.decision') }}: {{ decision_badge(meeting.decision) }}{% if meeting.decision.unanimous %} &middot; {{ t('meetings.unanimous') }}{% elif meeting.decision.dissenters %} &middot; {{ t('meetings.dissent', n=meeting.decision.dissenters | length, names=meeting.decision.dissenters | join(', ')) }}{% endif %} {{ ai_tag('ai.extracted') }}</span>{% endif %}</div>{% endif %}
       <div class="railbox"><span class="rl">{{ t('doc.original') }}</span><a href="{{ doc.source_url }}" target="_blank" rel="noopener">{{ doc.source_url.split('/')[2] }} &nearr;</a><span class="rs">{{ t('doc.opens_official') }} &middot; {{ lang_badge(doc) }}</span></div>
     </aside>
   </div>

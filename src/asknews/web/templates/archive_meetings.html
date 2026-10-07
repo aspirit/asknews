@@ -1,14 +1,11 @@
 {% extends "base.html" %}
-{% from "_macros.html" import ai_tag, lang_badge, archive_header with context %}
+{% from "_macros.html" import ai_tag, lang_badge, archive_header, decision_badge with context %}
 {% block title %}{{ t('archive.meetings') }} &middot; {{ t('site.name') }}{% endblock %}
 {% macro part(p, code) %}
 <div class="part"><span class="pl">{{ t('meetings.projections') if p.role == 'outlook' and code == 'fed' else t('meetings.' ~ p.role) }}</span>
   {% if p.document %}<a href="{{ u('/doc/' ~ (p.document.id)) }}">{{ p.document.title_in(lang)[0] }} <span class="pd">{{ t.date(p.document.published_at, p.document.institution, form='short') }}</span> {{ lang_badge(p.document) }}</a>{% else %}<span class="pn {{ p.status }}">{{ t('meetings.' ~ p.status) }}</span>{% endif %}
 </div>
 {% endmacro %}
-{% macro decision_badge(d) -%}
-{% if d.change_bp %}{{ '%+d' % d.change_bp }} bp &rarr; {% elif d.change_bp == 0 %}{{ t('meetings.hold') }} &middot; {% endif %}{{ d.range_text }}
-{%- endmacro %}
 {% block content %}
 <div class="wrap">
   {{ archive_header('meetings') }}
