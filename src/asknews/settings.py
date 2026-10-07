@@ -45,6 +45,21 @@ class Settings(BaseSettings):
         validation_alias="ASKNEWS_EMBED_URL",
         description="Base URL of the embedding service when embedder=remote.",
     )
+    llm: str = Field(
+        default="claude",
+        validation_alias="ASKNEWS_LLM",
+        description=(
+            "claude (Anthropic API, credentials from the environment) or scripted (offline)."
+        ),
+    )
+    llm_model: str = Field(default="claude-opus-5-5", validation_alias="ASKNEWS_LLM_MODEL")
+    llm_effort: str = Field(default="low", validation_alias="ASKNEWS_LLM_EFFORT")
+    daily_budget_usd: float = Field(default=3.0, validation_alias="ASKNEWS_DAILY_BUDGET_USD")
+    client_salt: str = Field(
+        default="change-me",
+        validation_alias="ASKNEWS_CLIENT_SALT",
+        description="Salt for the daily client hash used in rate limiting.",
+    )
     youtube_api_key: str | None = Field(
         default=None,
         validation_alias="YOUTUBE_API_KEY",

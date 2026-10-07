@@ -17,6 +17,7 @@ classifiers = [
   "Topic :: Text Processing :: Indexing",
 ]
 dependencies = [
+    "anthropic>=1.0",
     "fastapi>=0.118",
     "fonttools>=4.55",
     "httpx>=0.28",
