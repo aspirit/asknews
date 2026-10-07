@@ -47,6 +47,21 @@ def test_fed_decision_reads_range_change_and_vote() -> None:
     assert fed_decision(None) is None
 
 
+def test_fed_decision_accepts_keep_and_a_comma_before_the_range() -> None:
+    kept = fed_decision(
+        "The Committee decided to keep the target range for the federal funds rate at 0 to 1/4 "
+        "percent and expects"
+    )
+    assert kept is not None
+    assert (kept.low, kept.high, kept.change_bp) == (0.0, 0.25, 0)
+    emergency = fed_decision(
+        "decided today to lower the target range for the federal funds rate by 1/2 percentage "
+        "point, to 1 to 1-1/4 percent."
+    )
+    assert emergency is not None
+    assert (emergency.change_bp, emergency.range_text) == (-50, "1.00" + EN_DASH + "1.25%")
+
+
 def test_fed_dissenters_with_two_names() -> None:
     text = (
         "decided to raise the target range for the federal funds rate by 1/4 percentage point "

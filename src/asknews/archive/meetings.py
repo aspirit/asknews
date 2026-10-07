@@ -35,8 +35,9 @@ EN_DASH = chr(0x2013)
 # Title prefix of the Governor's regular post-meeting press conference.
 _REGULAR = "".join(chr(c) for c in (0x7DCF, 0x88C1, 0x5B9A, 0x4F8B))
 _FED = re.compile(
-    r"\b(raise|lower|maintain|increase|decrease)\b the target range for the federal funds rate"
-    r"(?: by (\d[\d\-/]*) percentage points?)? (?:at|to) (\d[\d\-/]*) to (\d[\d\-/]*) percent",
+    r"\b(raise|lower|maintain|keep|increase|decrease)\b the target range for the federal funds "
+    r"rate(?: by (\d[\d\-/]*) percentage points?,?)? (?:at|to) "
+    r"(\d[\d\-/]*) to (\d[\d\-/]*) percent",
     re.I,
 )
 # A voting sentence ends at a period that does not belong to an initial.
