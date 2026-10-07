@@ -18,6 +18,11 @@ fed:
     name_ja: ジェローム・パウエル
     role: Chair
     match: [Powell]
+  - slug: warsh
+    name: Kevin Warsh
+    name_ja: ケビン・ウォーシュ
+    role: Chairman
+    match: [Warsh]
   - slug: jefferson
     name: Philip N. Jefferson
     name_ja: フィリップ・ジェファーソン

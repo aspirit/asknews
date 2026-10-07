@@ -1,0 +1,56 @@
+"""Command-line entry point.
+
+Usage::
+
+    asknews migrate
+    asknews ingest fed-presconf --limit 5
+
+Source modules register their own sub-commands so this file stays a table
+of contents.
+"""
+
+from __future__ import annotations
+
+import argparse
+import logging
+import sys
+from collections.abc import Sequence
+
+
+def _migrate(args: argparse.Namespace) -> int:
+    from asknews.db.migrate import main
+
+    return main(["--dsn", args.dsn] if args.dsn else [])
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="asknews", description="Archive maintenance commands.")
+    parser.add_argument("-v", "--verbose", action="store_true", help="debug logging")
+    commands = parser.add_subparsers(dest="command", required=True)
+
+    migrate = commands.add_parser("migrate", help="apply pending database migrations")
+    migrate.add_argument("--dsn", help="connection URL (default: DATABASE_URL)")
+    migrate.set_defaults(func=_migrate)
+
+    ingest = commands.add_parser("ingest", help="fetch publications into the archive")
+    sources = ingest.add_subparsers(dest="source", required=True)
+    from asknews.ingest.fed import presconf
+
+    presconf.add_cli(sources)
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+    # Request logging would print signed media URLs; the fetcher reports what matters.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    result: int = args.func(args)
+    return result
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -12,6 +12,7 @@ import json
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit
 
 import httpx
@@ -39,6 +40,12 @@ class Fetched:
     @property
     def text(self) -> str:
         return self.content.decode(_charset(self.content_type), errors="replace")
+
+    def json_body(self) -> dict[str, Any]:
+        data = json.loads(self.text)
+        if not isinstance(data, dict):
+            raise FetchError(self.url, self.status, "expected a JSON object")
+        return data
 
 
 def _charset(content_type: str | None) -> str:

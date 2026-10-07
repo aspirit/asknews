@@ -1,0 +1,11 @@
+{
+  "id": "6379710022112",
+  "name": "FOMC Press Conference September 17, 2025",
+  "duration": 3132000,
+  "published_at": "2025-09-17T20:55:34.665Z",
+  "poster": "https://cdn.test/poster.jpg",
+  "text_tracks": [
+    {"kind": "metadata", "srclang": null, "src": "https://cdn.test/thumbs.vtt"},
+    {"kind": "captions", "srclang": "en", "label": "eng", "src": "https://cdn.test/signed/captions.vtt"}
+  ]
+}

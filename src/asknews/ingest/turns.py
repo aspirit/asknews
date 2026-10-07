@@ -134,3 +134,8 @@ def _sentence_windows(text: str, max_chars: int) -> list[tuple[int, int]]:
             begin = boundaries[i - 1]
     windows.append((begin, len(text)))
     return windows
+
+
+def window_text(text: str, *, max_chars: int = 900) -> list[str]:
+    """Split plain text into sentence-aligned windows of at most ``max_chars``."""
+    return [text[b:e].strip() for b, e in _sentence_windows(text, max_chars) if text[b:e].strip()]
