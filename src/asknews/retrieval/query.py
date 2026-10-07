@@ -105,9 +105,12 @@ _EN_TEMPORAL = frozenset(
 
 
 def _terms(text: str, lang: str, vocab: Vocabulary | None = None) -> tuple[str, ...]:
+    """Content terms: not the time words, and not the names of publishers,
+    which the institution cue already turns into a filter and a boost."""
     temporal: set[str] = set(_EN_TEMPORAL)
     if vocab is not None:
         temporal.update(vocab.recency.get(lang, ()))
+        temporal.update(cue.strip() for cues in vocab.institutions.values() for cue in cues)
     if lang == "ja":
         found = _KANJI_RUN.findall(text) + _KATAKANA_RUN.findall(text) + _ASCII_TERM.findall(text)
     else:

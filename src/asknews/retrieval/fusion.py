@@ -18,8 +18,9 @@ QUESTION_SPEAKER = "Question"
 _QUESTION_PENALTY = 0.01
 
 _PATH_WEIGHT = {"phrase": 2.0, "fulltext": 1.0, "terms": 1.0, "semantic": 1.0}
+# The statement is the decision itself; the press conference explains it.
 _KIND_WEIGHT = {
-    "statement": 0.015,
+    "statement": 0.025,
     "press_conference": 0.015,
     "minutes": 0.010,
     "report": 0.005,

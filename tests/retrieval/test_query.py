@@ -44,6 +44,7 @@ def test_recency_is_a_soft_window() -> None:
     assert q.institutions == ("fed",)
     assert "recent" not in q.terms  # time words set the window, they are not searched for
     assert "recently" not in q.terms
+    assert "fed" not in q.terms  # the publisher is a filter and a boost, not a search term
     assert "decide" in q.terms
 
 
