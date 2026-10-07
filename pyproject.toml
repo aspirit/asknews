@@ -112,7 +112,7 @@ markers = [
 ]
 filterwarnings = [
   # Starlette's test client still uses httpx; the warning is upstream noise.
-  "ignore:Using `httpx` with `starlette.testclient` is deprecated:DeprecationWarning",
+  "ignore:Using `httpx` with `starlette.testclient` is deprecated",
 ]
 xfail_strict = true
 

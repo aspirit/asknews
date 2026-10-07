@@ -1,9 +1,14 @@
-"""Candidate passages from the two retrieval paths and their hydration."""
+"""Candidate passages from the two retrieval paths and their hydration.
+
+A hard time window (a named month or year) is applied inside the SQL of
+every path, so the limited candidate lists are spent on passages from the
+period asked about rather than filtered away afterwards.
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from asknews.db.connection import Connection
@@ -13,6 +18,8 @@ from asknews.retrieval.query import Query
 LEXICAL_LIMIT = 60
 SEMANTIC_LIMIT = 40
 HNSW_EF_SEARCH = 100
+FULLTEXT_AND_MIN = 10  # fewer all-terms hits than this: also search any-term
+MAX_TERMS = 10
 
 
 @dataclass(slots=True)
@@ -22,79 +29,121 @@ class Candidate:
     ranks: dict[str, int] = field(default_factory=dict)  # path name -> 1-based rank
 
 
-def lexical(conn: Connection, query: Query) -> list[Candidate]:
-    """Full-text search for English, term and phrase matching for Japanese.
+def _window_sql(query: Query) -> tuple[str, list[Any]]:
+    if query.window is None or not query.window.hard:
+        return "", []
+    end = query.window.end + timedelta(days=1)
+    return " AND d.published_at >= %s AND d.published_at < %s", [query.window.start, end]
 
-    Quoted phrases are matched exactly in any language and outrank everything
-    else: a user who quotes something wants that wording.
-    """
-    found: dict[int, Candidate] = {}
 
-    def add(path: str, rows: list[dict[str, Any]]) -> None:
-        for rank, row in enumerate(rows, start=1):
-            cand = found.setdefault(int(row["id"]), Candidate(int(row["id"])))
-            cand.scores[path] = float(row["score"])
+class _Collector:
+    def __init__(self) -> None:
+        self.found: dict[int, Candidate] = {}
+
+    def add(self, path: str, rows: list[dict[str, Any]], *, offset: int = 0) -> None:
+        for rank, row in enumerate(rows, start=offset + 1):
+            cand = self.found.setdefault(int(row["id"]), Candidate(int(row["id"])))
+            cand.scores[path] = max(cand.scores.get(path, 0.0), float(row["score"]))
             cand.ranks.setdefault(path, rank)
 
-    if query.phrases:
-        conditions = " AND ".join("s.text ILIKE %s" for _ in query.phrases)
-        rows = conn.execute(
-            f"SELECT s.id, {len(query.phrases)}::float AS score FROM segments s "
-            f"WHERE {conditions} ORDER BY s.id DESC LIMIT %s",
-            [f"%{p}%" for p in query.phrases] + [LEXICAL_LIMIT],
-        ).fetchall()
-        add("phrase", rows)
+    def count(self, path: str) -> int:
+        return sum(1 for c in self.found.values() if path in c.ranks)
 
-    if query.lang == "en":
+
+def _phrases(conn: Connection, query: Query, out: _Collector) -> None:
+    window, params = _window_sql(query)
+    conditions = " AND ".join("s.text ILIKE %s" for _ in query.phrases)
+    rows = conn.execute(
+        f"""
+        SELECT s.id, {len(query.phrases)}::float AS score
+          FROM segments s JOIN documents d ON d.id = s.document_id
+         WHERE {conditions}{window}
+         ORDER BY d.published_at DESC, s.id
+         LIMIT %s
+        """,
+        [f"%{p}%" for p in query.phrases] + params + [LEXICAL_LIMIT],
+    ).fetchall()
+    out.add("phrase", rows)
+
+
+def _fulltext(conn: Connection, query: Query, out: _Collector) -> None:
+    """English full text: all content terms first, then any term if that was thin."""
+    terms = list(query.terms[:MAX_TERMS]) or [query.text]
+    window, params = _window_sql(query)
+    for joiner in (" ", " or "):
         rows = conn.execute(
-            """
+            f"""
             SELECT s.id, ts_rank_cd(s.tsv, q) AS score
-              FROM segments s, websearch_to_tsquery('english', %s) q
-             WHERE s.lang = 'en' AND s.tsv @@ q
+              FROM segments s JOIN documents d ON d.id = s.document_id,
+                   websearch_to_tsquery('english', %s) q
+             WHERE s.lang = 'en' AND s.tsv @@ q{window}
              ORDER BY score DESC
              LIMIT %s
             """,
-            (query.text, LEXICAL_LIMIT),
+            [joiner.join(terms), *params, LEXICAL_LIMIT],
         ).fetchall()
-        add("fulltext", rows)
+        out.add("fulltext", rows, offset=0 if joiner == " " else out.count("fulltext"))
+        if out.count("fulltext") >= FULLTEXT_AND_MIN or len(terms) < 2:
+            break
+
+
+def _terms(conn: Connection, query: Query, out: _Collector) -> None:
+    """Japanese: count how many content terms each passage contains."""
+    terms = list(query.terms[:MAX_TERMS])
+    window, params = _window_sql(query)
+    hits = " + ".join("(s.text LIKE %s)::int" for _ in terms)
+    any_term = " OR ".join("s.text LIKE %s" for _ in terms)
+    rows = conn.execute(
+        f"""
+        SELECT id, score FROM (
+            SELECT s.id, ({hits}) AS score, d.published_at
+              FROM segments s JOIN documents d ON d.id = s.document_id
+             WHERE s.lang <> 'en' AND ({any_term}){window}
+        ) matched
+         ORDER BY score DESC, published_at DESC, id DESC
+         LIMIT %s
+        """,
+        [f"%{t}%" for t in terms] * 2 + params + [LEXICAL_LIMIT],
+    ).fetchall()
+    out.add("terms", rows)
+
+
+def lexical(conn: Connection, query: Query) -> list[Candidate]:
+    """Exact phrases in any language, then full text (English) or terms (Japanese)."""
+    out = _Collector()
+    if query.phrases:
+        _phrases(conn, query, out)
+    if query.lang == "en":
+        _fulltext(conn, query, out)
     elif query.terms:
-        terms = list(query.terms[:8])
-        hits = " + ".join("(s.text LIKE %s)::int" for _ in terms)
-        rows = conn.execute(
-            f"""
-            SELECT id, score FROM (
-                SELECT s.id, ({hits}) AS score
-                  FROM segments s
-                 WHERE s.lang <> 'en' AND ({" OR ".join("s.text LIKE %s" for _ in terms)})
-            ) matched
-             WHERE score > 0
-             ORDER BY score DESC, id DESC
-             LIMIT %s
-            """,
-            [f"%{t}%" for t in terms] * 2 + [LEXICAL_LIMIT],
-        ).fetchall()
-        add("terms", rows)
-    return list(found.values())
+        _terms(conn, query, out)
+    return list(out.found.values())
 
 
 def semantic(conn: Connection, embedder: Embedder, query: Query) -> list[Candidate]:
     vector = to_pgvector(embedder.embed_query(query.text))
+    window, params = _window_sql(query)
+    join = (
+        "JOIN segments s ON s.id = e.segment_id JOIN documents d ON d.id = s.document_id"
+        if window
+        else ""
+    )
     with conn.transaction():
         conn.execute(f"SET LOCAL hnsw.ef_search = {HNSW_EF_SEARCH}")
         rows = conn.execute(
-            """
+            f"""
             SELECT e.segment_id AS id, 1 - (e.embedding <=> %s::vector) AS score
-              FROM segment_embeddings e
-             WHERE e.model = %s
+              FROM segment_embeddings e {join}
+             WHERE e.model = %s{window}
              ORDER BY e.embedding <=> %s::vector
              LIMIT %s
             """,
-            (vector, embedder.model_name, vector, SEMANTIC_LIMIT),
+            [vector, embedder.model_name, *params, vector, SEMANTIC_LIMIT],
         ).fetchall()
-    out: list[Candidate] = []
-    for rank, row in enumerate(rows, start=1):
-        out.append(Candidate(int(row["id"]), {"semantic": float(row["score"])}, {"semantic": rank}))
-    return out
+    return [
+        Candidate(int(row["id"]), {"semantic": float(row["score"])}, {"semantic": rank})
+        for rank, row in enumerate(rows, start=1)
+    ]
 
 
 @dataclass(frozen=True, slots=True)

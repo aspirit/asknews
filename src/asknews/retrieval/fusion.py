@@ -46,13 +46,11 @@ def fused_score(candidate: Candidate, passage: Passage, query: Query) -> float:
         score += 0.02
     if passage.speaker_slug and passage.speaker_slug in query.speakers:
         score += 0.03
-    if query.window is not None:
-        when = passage.published_at.date()
-        inside = query.window.start <= when <= query.window.end
-        if inside:
-            score += 0.03
-        elif query.window.hard:
-            score -= 0.5  # effectively excluded unless nothing else matches
+    if (
+        query.window is not None
+        and query.window.start <= passage.published_at.date() <= query.window.end
+    ):
+        score += 0.03  # hard windows are already applied in SQL; this rewards soft recency
     return score
 
 

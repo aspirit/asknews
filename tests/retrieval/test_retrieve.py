@@ -163,3 +163,39 @@ def test_gate_vocabulary() -> None:
     assert in_domain("Why did inflation rise?")
     assert in_domain("円安の影響は")
     assert not in_domain("Best ramen in Tokyo")
+
+
+@pytest.mark.integration
+def test_named_month_filters_every_path(db: Connection) -> None:
+    seed(db)
+    inside = retrieve(
+        db,
+        HashEmbedder(),
+        "What did the Fed say about rates in September 2025?",
+        directory=DIRECTORY,
+        vocab=VOCAB,
+    )
+    assert inside.citations
+    assert all(c.passage.published_at.year == 2025 for c in inside.citations)
+    outside = retrieve(
+        db,
+        HashEmbedder(),
+        "What did the Fed say about rates in September 2019?",
+        directory=DIRECTORY,
+        vocab=VOCAB,
+    )
+    assert outside.citations == []
+
+
+@pytest.mark.integration
+def test_fulltext_falls_back_to_any_term(db: Connection) -> None:
+    seed(db)
+    # "zorblax" matches nothing: the all-terms query is empty, the any-term query fills in.
+    result = retrieve(
+        db,
+        HashEmbedder(),
+        "Did the Fed mention zorblax or the federal funds rate?",
+        directory=DIRECTORY,
+        vocab=VOCAB,
+    )
+    assert any("federal funds rate" in c.passage.text for c in result.citations)
