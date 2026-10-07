@@ -3,7 +3,9 @@
 #   page         fetch the linked page and keep the text inside `main`
 #   description  use the feed's own description (no page fetch)
 #   none         title and link only (publisher terms do not allow excerpts)
-# `include`/`exclude` are regular expressions matched against the link.
+# `include`/`exclude` are regular expressions matched against the link;
+# `title_strip` lists expressions removed from titles (category prefixes,
+# stock phrases).
 sources:
   - code: ecb-press
     institution: ecb
@@ -44,6 +46,8 @@ sources:
     main: ["<article", "</article>"]
     include: ["/common/conference/", "/news/", "/policy/", "/inter/"]
     drop: ["ホーム", "Tweet", "Note: This page is machine translated"]
+    # Titles arrive as "category,title について掲載しました。"
+    title_strip: ["^[^,，]{1,8}[,，]", "について(?:掲載|公表)しました。$"]
   - code: boe-news
     institution: boe
     url: https://www.bankofengland.co.uk/rss/news

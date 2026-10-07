@@ -52,6 +52,23 @@ def test_source_filters() -> None:
     assert not source.accepts("https://example.test/other/a.htm")
 
 
+def test_title_strip_removes_category_and_stock_phrase() -> None:
+    source = feeds.Source(
+        "fsa",
+        "fsa",
+        "u",
+        "ja",
+        "release",
+        "page",
+        title_strip=("^[^,]{1,8},", "について(?:掲載|公表)しました。$"),
+    )
+    title = "記者会見,片山財務大臣閣議後記者会見の概要（令和８年９月29日）について掲載しました。"
+    assert feeds.clean_title(title, source) == "片山財務大臣閣議後記者会見の概要（令和8年9月29日）"
+    assert feeds.clean_title(
+        "Plain title", feeds.Source("x", "ecb", "u", "en", "release", "page")
+    ) == ("Plain title")
+
+
 def test_shipped_feed_configuration_loads() -> None:
     sources = feeds.load_sources(REPO_ROOT / "domain" / "feeds.yaml")
     codes = {s.code for s in sources}

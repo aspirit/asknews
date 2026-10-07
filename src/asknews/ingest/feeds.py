@@ -55,6 +55,7 @@ class Source:
     include: tuple[str, ...] = ()
     exclude: tuple[str, ...] = ()
     drop: tuple[str, ...] = ()
+    title_strip: tuple[str, ...] = ()  # regular expressions removed from titles
 
     def accepts(self, link: str) -> bool:
         if self.include and not any(re.search(p, link) for p in self.include):
@@ -97,6 +98,7 @@ def load_sources(path: Path) -> list[Source]:
                 include=tuple(str(p) for p in item.get("include") or ()),
                 exclude=tuple(str(p) for p in item.get("exclude") or ()),
                 drop=tuple(str(p) for p in item.get("drop") or ()),
+                title_strip=tuple(str(p) for p in item.get("title_strip") or ()),
             )
         )
     return sources
@@ -180,6 +182,14 @@ def parse_feed(xml: str) -> list[Entry]:
     return [e for e in entries if e.link]
 
 
+def clean_title(title: str, source: Source) -> str:
+    """A feed title without the source's category prefixes and stock phrases."""
+    for pattern in source.title_strip:
+        title = re.sub(pattern, "", title)
+    title = re.sub(r"\s+", " ", title).strip()
+    return normalise_ja(title) if source.lang == "ja" else title
+
+
 def external_id(link: str) -> str:
     return hashlib.sha1(link.encode("utf-8")).hexdigest()[:16]
 
@@ -230,7 +240,7 @@ def ingest_entry(
             kind=source.kind,
             lang=source.lang,
             external_id=external_id(entry.link),
-            title=entry.title or entry.link,
+            title=clean_title(entry.title, source) or entry.link,
             published_at=entry.published or datetime.now(UTC),
             source_url=entry.link,
             body=body,
