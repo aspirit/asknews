@@ -8,8 +8,11 @@ WORKDIR /app
 RUN useradd --create-home --uid 1000 app
 COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
+# The model cache is a volume; it must exist in the image with the service
+# user as owner, or Docker creates it owned by root and downloads fail.
 RUN uv sync --locked --no-dev --extra model \
-    && chown -R app:app /app
+    && mkdir -p /home/app/.cache/huggingface \
+    && chown -R app:app /app /home/app
 ENV PATH="/app/.venv/bin:$PATH" OMP_NUM_THREADS=2 TOKENIZERS_PARALLELISM=false
 USER app
 EXPOSE 8201
