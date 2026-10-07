@@ -9,7 +9,6 @@ the source modules share.
 from __future__ import annotations
 
 import re
-import unicodedata
 from collections.abc import Sequence
 from datetime import date
 
@@ -29,10 +28,23 @@ _SIZE_SUFFIX = re.compile(r"\s*\[PDF[^\]]*\]\s*$")
 _NBSP = " "
 
 
+# Full-width digits, Latin letters and the percent sign fold to ASCII so that
+# "1.25%" is searchable however it was typeset; Japanese punctuation is kept.
+_FOLD = {
+    code: chr(code - 0xFEE0)
+    for code in [*range(0xFF10, 0xFF1A), *range(0xFF21, 0xFF3B), *range(0xFF41, 0xFF5B), 0xFF05]
+}
+_FOLD[0x3000] = " "
+_FOLD[0x00A0] = " "
+_DOTTED_NUMBER = re.compile(r"(?<=\d)[．，](?=\d)")
+
+
 def normalise(text: str) -> str:
-    """NFKC-normalise (full-width digits and Latin become ASCII) and remove the
-    letter-spacing some PDF layouts insert between Japanese characters."""
-    text = unicodedata.normalize("NFKC", text).replace(_NBSP, " ")
+    """Fold full-width digits, letters and percent to ASCII, fold decimal
+    separators inside numbers, and remove the letter-spacing some PDF layouts
+    insert between Japanese characters."""
+    text = text.translate(_FOLD)
+    text = _DOTTED_NUMBER.sub(lambda m: "." if m.group(0) == "．" else ",", text)
     return _SPACED_CJK.sub("", text)
 
 

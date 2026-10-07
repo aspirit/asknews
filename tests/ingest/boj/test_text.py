@@ -18,6 +18,8 @@ def test_normalise_folds_fullwidth_digits_and_letter_spacing() -> None:
     spaced = "本 議 事 要 旨"  # 本 議 事 要 旨
     assert normalise(spaced) == "本議事要旨"
     assert normalise("rate 1.25% stays") == "rate 1.25% stays"
+    assert normalise("１．２５％") == "1.25%"
+    assert normalise("（問）") == "（問）"  # Japanese punctuation is left alone
 
 
 def test_dates() -> None:

@@ -175,4 +175,4 @@ def test_head_of_institution_by_date() -> None:
     assert directory.head_on("fed", date(2014, 3, 19)) is not None
     assert directory.head_on("fed", date(2014, 3, 19)).slug == "yellen"  # type: ignore[union-attr]
     assert directory.head_on("fed", date(2012, 4, 25)).slug == "bernanke"  # type: ignore[union-attr]
-    assert directory.head_on("boj", date(2012, 4, 25)) is None
+    assert directory.head_on("boj", date(1990, 1, 1)) is None

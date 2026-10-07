@@ -32,12 +32,26 @@ class SpeakerSpec:
 class SpeakerDirectory:
     speakers: tuple[SpeakerSpec, ...] = field(default_factory=tuple)
 
-    def find(self, institution: str, text: str) -> SpeakerSpec | None:
-        """The first speaker of ``institution`` whose match token occurs in ``text``."""
-        for spec in self.speakers:
-            if spec.institution == institution and any(token in text for token in spec.match):
-                return spec
-        return None
+    def find(self, institution: str, text: str, *, when: date | None = None) -> SpeakerSpec | None:
+        """The speaker of ``institution`` whose match token occurs in ``text``.
+
+        When several match (two board members sharing a surname) and a date is
+        given, the one whose recorded tenure covers the date wins; otherwise
+        the first entry does.
+        """
+        candidates = [
+            spec
+            for spec in self.speakers
+            if spec.institution == institution and any(token in text for token in spec.match)
+        ]
+        if when is not None:
+            for spec in candidates:
+                if spec.tenure and spec.tenure[0] <= when <= (spec.tenure[1] or date.max):
+                    return spec
+            dated = [spec for spec in candidates if spec.tenure is None]
+            if dated:
+                return dated[0]
+        return candidates[0] if candidates else None
 
     def get(self, slug: str) -> SpeakerSpec | None:
         return next((s for s in self.speakers if s.slug == slug), None)

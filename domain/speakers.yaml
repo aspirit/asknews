@@ -38,16 +38,24 @@ fed:
     role: Governor
     match: [Waller]
 boj:
+  - slug: shirakawa
+    name: Masaaki Shirakawa
+    name_ja: 白川方明
+    role: Governor
+    match: [Shirakawa, 白川]
+    tenure: {from: "2008-04-09", to: "2013-03-19"}
   - slug: kuroda
     name: Haruhiko Kuroda
     name_ja: 黒田東彦
     role: Governor
     match: [Kuroda, 黒田]
+    tenure: {from: "2013-03-20", to: "2023-04-08"}
   - slug: ueda
     name: Kazuo Ueda
     name_ja: 植田和男
     role: Governor
     match: [Ueda, 植田]
+    tenure: {from: "2023-04-09"}
   - slug: himino
     name: Ryozo Himino
     name_ja: 氷見野良三
@@ -58,3 +66,134 @@ boj:
     name_ja: 内田眞一
     role: Deputy Governor
     match: [Uchida, 内田]
+  - slug: amamiya
+    name: Masayoshi Amamiya
+    name_ja: 雨宮正佳
+    role: Deputy Governor
+    match: [Amamiya, 雨宮]
+  - slug: wakatabe
+    name: Masazumi Wakatabe
+    name_ja: 若田部昌澄
+    role: Deputy Governor
+    match: [Wakatabe, 若田部]
+  - slug: nakaso
+    name: Hiroshi Nakaso
+    name_ja: 中曽宏
+    role: Deputy Governor
+    match: [Nakaso, 中曽]
+  - slug: iwata
+    name: Kikuo Iwata
+    name_ja: 岩田規久男
+    role: Deputy Governor
+    match: [Iwata, 岩田]
+  - slug: yamaguchi
+    name: Hirohide Yamaguchi
+    name_ja: 山口廣秀
+    role: Deputy Governor
+    match: [Yamaguchi, 山口]
+  - slug: nishimura
+    name: Kiyohiko Nishimura
+    name_ja: 西村清彦
+    role: Deputy Governor
+    match: [Nishimura, 西村]
+  - slug: noguchi
+    name: Asahi Noguchi
+    name_ja: 野口旭
+    role: Board Member
+    match: [Noguchi, 野口]
+  - slug: nakagawa
+    name: Junko Nakagawa
+    name_ja: 中川順子
+    role: Board Member
+    match: [Nakagawa, 中川]
+  - slug: takata
+    name: Hajime Takata
+    name_ja: 高田創
+    role: Board Member
+    match: [Takata, 高田]
+  - slug: tamura
+    name: Naoki Tamura
+    name_ja: 田村直樹
+    role: Board Member
+    match: [Tamura, 田村]
+  - slug: koeda
+    name: Junko Koeda
+    name_ja: 小枝淳子
+    role: Board Member
+    match: [Koeda, 小枝]
+  - slug: masu
+    name: Kazuyuki Masu
+    name_ja: 増一行
+    role: Board Member
+    match: [Masu, 増]
+  - slug: adachi
+    name: Seiji Adachi
+    name_ja: 安達誠司
+    role: Board Member
+    match: [Adachi, 安達]
+  - slug: nakamura-t
+    name: Toyoaki Nakamura
+    name_ja: 中村豊明
+    role: Board Member
+    match: [Nakamura, 中村]
+  - slug: kataoka
+    name: Goushi Kataoka
+    name_ja: 片岡剛士
+    role: Board Member
+    match: [Kataoka, 片岡]
+  - slug: suzuki
+    name: Hitoshi Suzuki
+    name_ja: 鈴木人司
+    role: Board Member
+    match: [Suzuki, 鈴木]
+  - slug: masai
+    name: Takako Masai
+    name_ja: 政井貴子
+    role: Board Member
+    match: [Masai, 政井]
+  - slug: sakurai
+    name: Makoto Sakurai
+    name_ja: 櫻井眞
+    role: Board Member
+    match: [Sakurai, 櫻井]
+  - slug: funo
+    name: Yukitoshi Funo
+    name_ja: 布野幸利
+    role: Board Member
+    match: [Funo, 布野]
+  - slug: harada
+    name: Yutaka Harada
+    name_ja: 原田泰
+    role: Board Member
+    match: [Harada, 原田]
+  - slug: kiuchi
+    name: Takahide Kiuchi
+    name_ja: 木内登英
+    role: Board Member
+    match: [Kiuchi, 木内]
+  - slug: sato
+    name: Takehiro Sato
+    name_ja: 佐藤健裕
+    role: Board Member
+    match: [Sato, 佐藤]
+    tenure: {from: "2012-07-24", to: "2017-07-23"}
+  - slug: ishida
+    name: Koji Ishida
+    name_ja: 石田浩二
+    role: Board Member
+    match: [Ishida, 石田]
+  - slug: shirai
+    name: Sayuri Shirai
+    name_ja: 白井さゆり
+    role: Board Member
+    match: [Shirai, 白井]
+  - slug: morimoto
+    name: Yoshihisa Morimoto
+    name_ja: 森本宜久
+    role: Board Member
+    match: [Morimoto, 森本]
+  - slug: miyao
+    name: Ryuzo Miyao
+    name_ja: 宮尾龍蔵
+    role: Board Member
+    match: [Miyao, 宮尾]
