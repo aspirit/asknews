@@ -72,6 +72,10 @@ def test_document_pages(api: Api) -> None:
     missing = client.get("/doc/999999")
     assert missing.status_code == 404
     assert "404" in missing.text
+    unknown = client.get("/no/such/page")  # raised by the router, not by a route
+    assert unknown.status_code == 404
+    assert "404" in unknown.text
+    assert "<html" in unknown.text
 
 
 def test_robots_and_sitemap(api: Api) -> None:

@@ -8,9 +8,10 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from asknews import __version__
 from asknews.api.deps import Runtime, build_runtime
@@ -43,8 +44,10 @@ def create_app(runtime: Runtime | None = None) -> FastAPI:
     def healthz() -> dict[str, str]:
         return {"status": "ok", "version": __version__}
 
-    @application.exception_handler(HTTPException)
-    async def not_found(request: Request, exc: HTTPException) -> Response:
+    # Starlette's class, so that unknown paths (raised by the router itself) get the
+    # HTML page too, not only 404s raised inside our own routes.
+    @application.exception_handler(StarletteHTTPException)
+    async def not_found(request: Request, exc: StarletteHTTPException) -> Response:
         if exc.status_code == 404 and not request.url.path.startswith("/api/"):
             response = render(request, "404.html", page="")
             response.status_code = 404
