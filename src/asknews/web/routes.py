@@ -114,7 +114,7 @@ def home(request: Request, conn: Conn) -> HTMLResponse:
         request,
         "home.html",
         page="home",
-        latest=documents.latest(conn, limit=10),
+        latest=documents.prominent(conn, limit=10),
         featured=featured_videos(conn, lang),
         questions=sample_questions(lang),
     )

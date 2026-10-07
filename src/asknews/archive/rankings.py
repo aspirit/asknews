@@ -128,32 +128,33 @@ def institutions(conn: Connection, *, days: int = 30) -> list[InstitutionRank]:
     return sorted(ranks, key=lambda r: (-r.total, r.code))
 
 
-def _topic_count(conn: Connection, topic: Topic, start: datetime, end: datetime) -> int:
-    terms = [t for lang_terms in topic.terms.values() for t in lang_terms]
-    if not terms:
-        return 0
-    condition = " OR ".join("(d.title ILIKE %s OR d.body ILIKE %s)" for _ in terms)
-    params: list[Any] = [start, end]
-    for term in terms:
-        params += [f"%{term}%", f"%{term}%"]
-    row = conn.execute(
-        f"SELECT count(*) AS n FROM documents d WHERE d.published_at >= %s AND d.published_at < %s "
-        f"AND ({condition})",
-        params,
-    ).fetchone()
-    return int(row["n"]) if row else 0
-
-
 def topic_ranks(conn: Connection, *, days: int = 90) -> list[TopicRank]:
+    """Documents per topic in the period and in the period before it, in one scan."""
     now = datetime.now(UTC)
     start = now - timedelta(days=days)
     previous_start = start - timedelta(days=days)
-    ranks = [
-        TopicRank(
-            topic,
-            _topic_count(conn, topic, start, now),
-            _topic_count(conn, topic, previous_start, start),
+    selected = [t for t in topics() if any(t.terms.values())]
+    if not selected:
+        return []
+    columns: list[str] = []
+    params: list[Any] = []
+    for index, topic in enumerate(selected):
+        patterns = [f"%{term}%" for lang_terms in topic.terms.values() for term in lang_terms]
+        match = "(d.title ILIKE ANY(%s) OR d.body ILIKE ANY(%s))"
+        columns.append(
+            f"count(*) FILTER (WHERE d.published_at >= %s AND {match}) AS current_{index}, "
+            f"count(*) FILTER (WHERE d.published_at < %s AND {match}) AS previous_{index}"
         )
-        for topic in topics()
+        params += [start, patterns, patterns, start, patterns, patterns]
+    row = conn.execute(
+        f"SELECT {', '.join(columns)} FROM documents d "
+        "WHERE d.published_at >= %s AND d.published_at < %s",
+        [*params, previous_start, now],
+    ).fetchone()
+    ranks = [
+        TopicRank(topic, int(row[f"current_{i}"]), int(row[f"previous_{i}"]))
+        if row
+        else TopicRank(topic, 0, 0)
+        for i, topic in enumerate(selected)
     ]
     return sorted(ranks, key=lambda r: (-r.documents, r.topic.slug))

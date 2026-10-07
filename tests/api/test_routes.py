@@ -79,3 +79,12 @@ def test_rankings(api: Api) -> None:
     assert body["speakers"][0]["minutes_spoken"] == 52
     assert any(t["slug"] == "policy-rate" and t["documents"] >= 1 for t in body["topics"])
     assert client.get("/api/briefs").json() == []
+
+
+def test_prominence_prefers_core_publishers_and_decisions(api: Api) -> None:
+    from asknews.archive.documents import prominent
+
+    client, _, _ = api
+    with client.app.state.runtime.pool.connection() as conn:  # type: ignore[attr-defined]
+        ranked = prominent(conn, limit=10)
+    assert [d.kind for d in ranked[:2]] == ["press_conference", "statement"]

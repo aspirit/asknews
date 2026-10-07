@@ -115,6 +115,28 @@ def latest(
     return [_row_to_summary(r) for r in rows]
 
 
+# Ordering for the home page: what matters most among recent releases, from
+# document attributes alone (kind, publisher, video, who spoke, age).
+_PROMINENCE_SQL = """
+    CASE d.kind WHEN 'statement' THEN 3 WHEN 'press_conference' THEN 3 WHEN 'minutes' THEN 2
+                WHEN 'report' THEN 1.5 WHEN 'speech' THEN 1 ELSE 0.5 END
+    + CASE WHEN i.code IN ('fed', 'boj') THEN 2 ELSE 0 END
+    + CASE WHEN m.provider IS NOT NULL THEN 1 ELSE 0 END
+    + CASE WHEN sp.role IN ('Chair', 'Chairman', 'Governor') THEN 1 ELSE 0 END
+    - EXTRACT(EPOCH FROM (now() - d.published_at)) / 86400.0 / 30.0
+"""
+
+
+def prominent(conn: Connection, *, limit: int = 10) -> list[DocumentSummary]:
+    """Releases ranked by prominence, where age counts against a document but
+    does not exclude it: a quiet month still fills the list."""
+    rows = conn.execute(
+        _LIST_SQL + f" ORDER BY ({_PROMINENCE_SQL}) DESC, d.published_at DESC LIMIT %s",
+        [limit],
+    ).fetchall()
+    return [_row_to_summary(r) for r in rows]
+
+
 def by_ids(conn: Connection, ids: list[int]) -> dict[int, DocumentSummary]:
     if not ids:
         return {}
