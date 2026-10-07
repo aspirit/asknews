@@ -42,6 +42,9 @@ def test_recency_is_a_soft_window() -> None:
     assert q.window is not None
     assert q.window.hard is False
     assert q.institutions == ("fed",)
+    assert "recent" not in q.terms  # time words set the window, they are not searched for
+    assert "recently" not in q.terms
+    assert "decide" in q.terms
 
 
 def test_japanese_signals() -> None:

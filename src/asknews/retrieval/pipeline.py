@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from asknews.db.connection import Connection
@@ -45,7 +45,16 @@ def retrieve(
     found = paths.lexical(conn, query)
     lexical = found.candidates
     semantic = paths.semantic(conn, embedder, query) if (named or lexical) else []
-    merged = merge_candidates(lexical, semantic)
+    recent: list[paths.Candidate] = []
+    if query.recency and query.window is not None:
+        # "Recently" is only a soft window for scoring; old transcripts that
+        # talk about "the most recent meeting" would still crowd out the latest
+        # material, so the window is also searched on its own.
+        within = replace(query, window=replace(query.window, hard=True))
+        recent = paths.lexical(conn, within).candidates
+        if named or lexical or recent:
+            recent += paths.semantic(conn, embedder, within)
+    merged = merge_candidates(recent, lexical, semantic)
     passages = paths.hydrate(conn, [c.segment_id for c in merged])
     citations = fuse(merged, passages, query)
     questions = [c.passage.segment_id for c in citations if c.passage.speaker == QUESTION_SPEAKER]
@@ -86,5 +95,6 @@ def retrieve(
         "lexical": len(lexical),
         "strict_fulltext": found.strict_fulltext,
         "semantic": len(semantic),
+        "recent": len(recent),
     }
     return Retrieval(query, citations if in_domain else [], in_domain, meta)

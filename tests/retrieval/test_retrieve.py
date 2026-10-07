@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import fields
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -107,6 +107,60 @@ def seed(db: Connection) -> None:
 
 
 @pytest.mark.integration
+def test_recency_cue_surfaces_the_latest_material(db: Connection) -> None:
+    migrate(db)
+    old = upsert_document(
+        db,
+        Document(
+            "fed",
+            "press_conference",
+            "en",
+            "20141217",
+            "Press Conference, December 17, 2014",
+            datetime(2014, 12, 17, 19, 30, tzinfo=UTC),
+            "https://fed.test/old",
+        ),
+    )
+    replace_segments(
+        db,
+        old,
+        [
+            Segment(
+                0,
+                "At our most recent meeting the Committee decided to keep the target range "
+                "unchanged, as it did at the most recent meeting before that.",
+            )
+        ],
+    )
+    recent = upsert_document(
+        db,
+        Document(
+            "fed",
+            "statement",
+            "en",
+            "20260916",
+            "Federal Reserve issues FOMC statement",
+            datetime.now(UTC) - timedelta(days=10),
+            "https://fed.test/new",
+        ),
+    )
+    replace_segments(
+        db,
+        recent,
+        [Segment(0, "The Committee decided to raise the target range to 3-3/4 to 4 percent.")],
+    )
+    embed_pending(db, HashEmbedder())
+    found = retrieve(
+        db,
+        HashEmbedder(),
+        "What did the Fed decide at its most recent meeting?",
+        directory=DIRECTORY,
+        vocab=VOCAB,
+    )
+    assert found.citations[0].passage.document_id == recent
+    assert found.meta["recent"] >= 1
+
+
 def test_a_retrieved_question_brings_its_answer(db: Connection) -> None:
     migrate(db)
     ueda = upsert_speaker(db, institution="boj", slug="ueda", name="Kazuo Ueda", role="Governor")

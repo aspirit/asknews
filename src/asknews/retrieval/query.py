@@ -86,14 +86,36 @@ def detect_language(text: str) -> str:
     return "ja" if _JA_CHAR.search(text) else "en"
 
 
-def _terms(text: str, lang: str) -> tuple[str, ...]:
+# Words that say when, not what: they set the window and must not be searched
+# for, or "most recent meeting" matches every transcript that says so.
+_EN_TEMPORAL = frozenset(
+    {
+        "latest",
+        "recent",
+        "recently",
+        "today",
+        "yesterday",
+        "now",
+        "currently",
+        "week",
+        "month",
+        "year",
+    }
+)
+
+
+def _terms(text: str, lang: str, vocab: Vocabulary | None = None) -> tuple[str, ...]:
+    temporal: set[str] = set(_EN_TEMPORAL)
+    if vocab is not None:
+        temporal.update(vocab.recency.get(lang, ()))
     if lang == "ja":
         found = _KANJI_RUN.findall(text) + _KATAKANA_RUN.findall(text) + _ASCII_TERM.findall(text)
     else:
         found = [w for w in _EN_WORD.findall(text.lower()) if w not in _EN_STOP]
     seen: dict[str, None] = {}
     for term in found:
-        seen.setdefault(term, None)
+        if term not in temporal:
+            seen.setdefault(term, None)
     return tuple(seen)
 
 
@@ -149,7 +171,7 @@ def analyse(
         text=text.strip(),
         lang=lang,
         phrases=phrases,
-        terms=_terms(text, lang),
+        terms=_terms(text, lang, vocab),
         institutions=_institutions(lowered, vocab),
         speakers=speakers,
         window=window,
