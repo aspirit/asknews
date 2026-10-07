@@ -51,6 +51,7 @@ class Routes:
     def __init__(self) -> None:
         self.requests: list[httpx.Request] = []
         self.caption_failures = 0
+        self.pages_without_transcript = 0  # serve the page without its PDF link this many times
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
@@ -61,6 +62,9 @@ class Routes:
         if url not in ROUTES:
             return httpx.Response(404)
         status, content_type, body = ROUTES[url]
+        if url.endswith("fomcpresconf20250917.htm") and self.pages_without_transcript > 0:
+            self.pages_without_transcript -= 1
+            body = body.replace("/mediacenter/files/FOMCpresconf20250917.pdf", "")
         return httpx.Response(status, text=body, headers={"content-type": content_type})
 
 
@@ -172,6 +176,21 @@ def test_expired_caption_url_triggers_one_refresh(
     assert outcome.timestamped is True
     playback_calls = [r for r in routes.requests if "playback/v1" in str(r.url)]
     assert len(playback_calls) == 2
+
+
+@pytest.mark.integration
+def test_page_cached_before_the_transcript_appeared_is_fetched_again(
+    db: Connection, fetcher: Fetcher, routes: Routes
+) -> None:
+    migrate(db)
+    routes.pages_without_transcript = 1
+    directory = load_speakers(REPO_ROOT / "domain" / "speakers.yaml")
+    outcome = presconf.ingest_press_conference(db, fetcher, "20250917", directory=directory)
+    page_fetches = [r for r in routes.requests if str(r.url).endswith("fomcpresconf20250917.htm")]
+    assert len(page_fetches) == 2
+    meta = db.execute("SELECT meta FROM documents WHERE id = %s", (outcome.document_id,)).fetchone()
+    assert meta is not None
+    assert meta["meta"]["transcript_url"].endswith("FOMCpresconf20250917.pdf")
 
 
 def test_principal_speaker_accepts_typographic_apostrophe() -> None:

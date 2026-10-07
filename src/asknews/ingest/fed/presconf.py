@@ -250,6 +250,10 @@ def ingest_press_conference(
 ) -> Outcome:
     page_url = page_url or PAGE_URL.format(date=date)
     page = read_page(fetcher.get(page_url, refresh=refresh).text)
+    if page.transcript_url is None and not refresh:
+        # The transcript PDF is linked days after the event; a cached page
+        # from before then would hide it for good, so look once more.
+        page = read_page(fetcher.get(page_url, refresh=True).text)
     video, captions = _video(fetcher, page, refresh=refresh)
 
     if captions is not None:
