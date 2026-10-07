@@ -123,6 +123,7 @@
       if (data.reason === "rate") return S.rate;
       return S.error;
     }
+    if (data.status === "error") return S.error;
     return S.no_sources;
   }
 
