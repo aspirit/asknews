@@ -31,7 +31,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://asknews:asknews@localhost:5432/asknews_test
+      TEST_DATABASE_URL: postgresql://asknews:asknews@localhost:5432/asknews_test
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
