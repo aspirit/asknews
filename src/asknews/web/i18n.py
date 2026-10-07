@@ -14,16 +14,22 @@ LANGUAGES = ("en", "ja")
 DEFAULT_LANGUAGE = "en"
 # Dates are shown as the publisher's calendar date, whatever the reader's
 # language: a Washington afternoon stays on its own day for a reader in Tokyo.
+# Resolved at import time, so a misspelt zone name fails on start-up rather
+# than on the first page that shows that publisher.
 ZONES = {
-    "fed": "America/New_York",
-    "bea": "America/New_York",
-    "boj": "Asia/Tokyo",
-    "mof": "Asia/Tokyo",
-    "fsa": "Asia/Tokyo",
-    "ecb": "Europe/Frankfurt",
-    "bis": "Europe/Zurich",
-    "boe": "Europe/London",
+    code: ZoneInfo(name)
+    for code, name in {
+        "fed": "America/New_York",
+        "bea": "America/New_York",
+        "boj": "Asia/Tokyo",
+        "mof": "Asia/Tokyo",
+        "fsa": "Asia/Tokyo",
+        "ecb": "Europe/Berlin",
+        "bis": "Europe/Zurich",
+        "boe": "Europe/London",
+    }.items()
 }
+UTC = ZoneInfo("UTC")
 
 
 @cache
@@ -50,7 +56,7 @@ class Translator:
         return self._strings.get(key, self._fallback.get(key))
 
     def date(self, when: dt.datetime, institution: str | None = None, *, form: str = "full") -> str:
-        local = when.astimezone(ZoneInfo(ZONES.get(institution or "", "UTC")))
+        local = when.astimezone(ZONES.get(institution or "", UTC))
         months: list[str] = self.get("date.months")
         return self(f"date.{form}", y=local.year, mon=months[local.month - 1], d=local.day)
 

@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from asknews.web.i18n import Translator, localized_path, path_language
+from asknews.web.i18n import ZONES, Translator, localized_path, path_language
 
 
 def test_dates_follow_the_publisher_not_the_reader() -> None:
@@ -22,6 +22,14 @@ def test_language_lives_in_the_path_prefix() -> None:
     assert path_language("/ja") == ("ja", "/")
     assert path_language("/archive") == ("en", "/archive")
     assert path_language("/en/archive") == ("en", "/en/archive")  # not a prefix we serve
+
+
+def test_every_publisher_has_a_resolvable_zone() -> None:
+    assert {"fed", "boj", "ecb", "bis", "bea", "mof", "fsa", "boe"} <= set(ZONES)
+    frankfurt_afternoon = datetime(2026, 10, 7, 12, 30, tzinfo=UTC)  # 14:30 in Frankfurt
+    assert Translator("en").date(frankfurt_afternoon, "ecb") == "Oct 7, 2026"
+    unknown = Translator("en").date(frankfurt_afternoon, "nowhere")  # falls back to UTC
+    assert unknown == "Oct 7, 2026"
 
 
 def test_roles_translate_when_known() -> None:
