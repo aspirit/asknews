@@ -56,7 +56,9 @@ def pending_documents(
           FROM documents d JOIN institutions i ON i.id = d.institution_id
          WHERE d.summary IS NULL AND d.body IS NOT NULL AND length(d.body) > 200
            AND d.kind = ANY(%s)
-         ORDER BY d.published_at DESC
+         ORDER BY (d.published_at >= now() - interval '14 days') DESC,
+                  (i.code IN ('fed', 'boj')) DESC,
+                  d.published_at DESC
          LIMIT %s
         """,
         (list(kinds), limit),
@@ -122,8 +124,9 @@ def summarize_pending(
     limit: int = 50,
     budget: float | None = None,
 ) -> Run:
-    """Summarize up to ``limit`` documents, newest first, while the daily
-    budget's generation share lasts."""
+    """Summarize up to ``limit`` documents while the daily budget's generation
+    share lasts: the last two weeks first, then the central banks' backlog,
+    newest first, so the pages visitors land on fill in before the archive."""
     done = 0
     cost = 0.0
     for doc in pending_documents(conn, kinds=kinds, limit=limit):

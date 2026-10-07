@@ -66,7 +66,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     # Request logging would print signed media URLs; the fetcher reports what matters.
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    for name in ("httpx", "httpx2", "httpcore"):
+        logging.getLogger(name).setLevel(logging.WARNING)
     result: int = args.func(args)
     return result
 
