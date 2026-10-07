@@ -139,7 +139,6 @@
   "date.short": "{mon} {d}",
   "date.month": "{mon} {y}",
   "footer.note": "Answers are generated from official publications and may contain errors. Check the original before relying on them.",
-  "footer.source": "Source code",
   "about.kick": "About AskNews",
   "about.h": "An answer engine for central bank communications.",
   "about.p": "AskNews answers questions using only what central banks and finance ministries have officially published: policy statements, press conferences, minutes, speeches and outlook reports. The core archive is the Federal Reserve in English and the Bank of Japan in Japanese.",
