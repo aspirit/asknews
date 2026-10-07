@@ -17,6 +17,7 @@ classifiers = [
   "Topic :: Text Processing :: Indexing",
 ]
 dependencies = [
+    "httpx>=0.28",
     "psycopg[binary]>=3.2",
     "pydantic-settings>=2.10",
 ]
