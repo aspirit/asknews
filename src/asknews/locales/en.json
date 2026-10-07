@@ -175,7 +175,5 @@
     ["ai.title", "Meeting titles in the timeline"],
     ["ai.extracted", "Policy decisions extracted from a meeting"],
     ["ai.translation", "Titles shown in a language other than the original"]
-  ],
-  "about.code_h": "Code",
-  "about.code_p": "The archive, retrieval and answer pipeline are open source."
+  ]
 }
