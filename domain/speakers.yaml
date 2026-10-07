@@ -1,0 +1,51 @@
+# People whose speeches and press conferences the archive carries.
+# `match` lists surname spellings as they appear in transcript titles and
+# speech pages; the first match wins. Unknown speakers are created on the
+# fly from the title and can be given a proper entry here afterwards.
+fed:
+  - slug: bernanke
+    name: Ben S. Bernanke
+    name_ja: ベン・バーナンキ
+    role: Chairman
+    match: [Bernanke]
+  - slug: yellen
+    name: Janet L. Yellen
+    name_ja: ジャネット・イエレン
+    role: Chair
+    match: [Yellen]
+  - slug: powell
+    name: Jerome H. Powell
+    name_ja: ジェローム・パウエル
+    role: Chair
+    match: [Powell]
+  - slug: jefferson
+    name: Philip N. Jefferson
+    name_ja: フィリップ・ジェファーソン
+    role: Vice Chair
+    match: [Jefferson]
+  - slug: waller
+    name: Christopher J. Waller
+    name_ja: クリストファー・ウォラー
+    role: Governor
+    match: [Waller]
+boj:
+  - slug: kuroda
+    name: Haruhiko Kuroda
+    name_ja: 黒田東彦
+    role: Governor
+    match: [Kuroda, 黒田]
+  - slug: ueda
+    name: Kazuo Ueda
+    name_ja: 植田和男
+    role: Governor
+    match: [Ueda, 植田]
+  - slug: himino
+    name: Ryozo Himino
+    name_ja: 氷見野良三
+    role: Deputy Governor
+    match: [Himino, 氷見野]
+  - slug: uchida
+    name: Shinichi Uchida
+    name_ja: 内田眞一
+    role: Deputy Governor
+    match: [Uchida, 内田]

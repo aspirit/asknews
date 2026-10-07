@@ -8,6 +8,7 @@ domain configuration, not an environment variable.
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -19,6 +20,17 @@ class Settings(BaseSettings):
     database_url: PostgresDsn = Field(
         validation_alias="DATABASE_URL",
         description="PostgreSQL connection URL; the database must have the pgvector extension.",
+    )
+
+    domain_dir: Path = Field(
+        default=Path("domain"),
+        validation_alias="ASKNEWS_DOMAIN_DIR",
+        description="Directory holding domain configuration (speakers, curated lists).",
+    )
+    data_dir: Path = Field(
+        default=Path("data"),
+        validation_alias="ASKNEWS_DATA_DIR",
+        description="Local working directory for fetched sources and caches.",
     )
 
     @property
