@@ -15,12 +15,29 @@ def test_home_renders_latest_and_language_switch(api: Api) -> None:
     assert page.status_code == 200
     assert "Core archive" in page.text
     assert "Federal Reserve issues FOMC statement" in page.text
-    japanese = client.get("/?lang=ja")
-    assert japanese.cookies.get("lang") == "ja"
+    assert '<html lang="en" data-prefix="">' in page.text
+    assert 'href="/ja" hreflang="ja"' in page.text  # the switch points at the Japanese home
+    japanese = client.get("/ja")
+    assert japanese.status_code == 200
     assert "アーカイブ" in japanese.text  # the Japanese nav label for Archive
-    switched = client.get("/lang/en?next=/archive", follow_redirects=False)
-    assert switched.status_code == 303
-    assert switched.headers["location"] == "/archive"
+    assert '<html lang="ja" data-prefix="/ja">' in japanese.text
+    assert 'href="/ja/archive"' in japanese.text  # navigation stays in the language
+    assert 'href="/" hreflang="en"' in japanese.text
+
+
+def test_language_versions_link_each_other(api: Api) -> None:
+    client, _, _ = api
+    page = client.get("/archive/latest", params={"kind": "statement"}).text
+    assert 'href="/ja/archive/latest?kind=statement" hreflang="ja"' in page
+    assert (
+        '<link rel="alternate" hreflang="ja" href="https://asknews.jp/ja/archive/latest?kind=statement">'
+        in page
+    )
+    assert '<link rel="canonical" href="https://asknews.jp/archive/latest">' in page
+    japanese = client.get("/ja/archive/latest", params={"kind": "statement"}).text
+    assert 'href="/archive/latest?kind=statement" hreflang="en"' in japanese
+    assert client.get("/ja/doc/999999").status_code == 404
+    assert client.get("/en/archive").status_code == 404  # English lives at the root
 
 
 def test_archive_pages(api: Api) -> None:
@@ -32,8 +49,7 @@ def test_archive_pages(api: Api) -> None:
     assert client.get("/archive/latest", params={"kind": "poem"}).status_code == 404
     videos = client.get("/archive/videos").text
     assert "Jerome H. Powell" in videos
-    assert "ジェローム・パウエル" in client.get("/archive/videos", params={"lang": "ja"}).text
-    client.cookies.clear()
+    assert "ジェローム・パウエル" in client.get("/ja/archive/videos").text
     rankings = client.get("/archive/rankings", params={"days": 3650}).text
     assert "Jerome H. Powell" in rankings
     meetings = client.get("/archive/meetings").text

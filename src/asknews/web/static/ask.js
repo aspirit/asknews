@@ -5,6 +5,7 @@
   if (!root) return;
   var S = JSON.parse(document.getElementById("tpl-strings").textContent);
   var lang = root.dataset.lang;
+  var PREFIX = document.documentElement.getAttribute("data-prefix") || "";
   var docId = root.dataset.doc;
   var turns = document.getElementById("turns");
   var rail = document.getElementById("rail");
@@ -86,7 +87,7 @@
       el("div", { class: "qmeta" }, [c.start_sec != null ? el("span", { class: "tt", text: "\u25b6 " + fmtTime(c.start_sec) }) : null, who]),
       document.createTextNode(c.text),
     ]);
-    var open = el("a", { class: "btn", href: c.url, text: (c.start_sec != null ? S.open_at + " " + fmtTime(c.start_sec) : S.open_doc) + " \u2192" });
+    var open = el("a", { class: "btn", href: PREFIX + c.url, text: (c.start_sec != null ? S.open_at + " " + fmtTime(c.start_sec) : S.open_doc) + " \u2192" });
     var original = el("a", { class: "btn ghost", href: c.source_url, target: "_blank", rel: "noopener", text: c.source_url.split("/")[2] + " \u2197" });
     var drawer = el("div", { class: "drawer", id: "drawer", role: "dialog" }, [
       el("div", { class: "top" }, [el("span", { class: "kick", text: S.sources }), el("button", { type: "button", "aria-label": "Close", text: "\u00d7" })]),
@@ -215,7 +216,7 @@
       .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)); })
       .then(function (data) { renderTurn(container, question, data, ((performance.now() - started) / 1000).toFixed(1)); })
       .catch(function () { renderTurn(container, question, { status: "error", paragraphs: [], citations: [] }, 0); });
-    history.replaceState(null, "", "/ask?q=" + encodeURIComponent(question) + (docId ? "&doc=" + docId : ""));
+    history.replaceState(null, "", PREFIX + "/ask?q=" + encodeURIComponent(question) + (docId ? "&doc=" + docId : ""));
   }
 
   document.querySelectorAll("[data-ask-form]").forEach(function (form) {

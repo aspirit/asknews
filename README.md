@@ -85,6 +85,7 @@ and are skipped when it is unset.
 | `ASKNEWS_SUMMARY_MODEL` | `claude-sonnet-5-5` | Model for summaries and briefs |
 | `ASKNEWS_DAILY_BUDGET_USD` | `3` | Stop answering when the day's estimated spend reaches this |
 | `ASKNEWS_CLIENT_SALT` | `change-me` | Salt for the daily client hash used in rate limiting |
+| `ASKNEWS_SITE_URL` | `https://asknews.jp` | Public origin for canonical and alternate-language links |
 | `ANTHROPIC_API_KEY` | | Read by the Anthropic SDK |
 | `YOUTUBE_API_KEY` | | Optional; without it only the channel feed's latest videos are attached |
 

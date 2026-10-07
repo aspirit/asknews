@@ -6,7 +6,7 @@
 <div class="wrap">
   <div class="story">
     <article lang="{{ doc.lang }}" id="doc" data-provider="{{ doc.media_provider or '' }}" data-media-id="{{ doc.media_id or '' }}" data-start="{{ start or '' }}">
-      <a class="back" href="{{ '/archive/videos' if doc.media_provider else '/archive/latest' }}">&larr; {{ t('doc.back') }}</a>
+      <a class="back" href="{{ u('/archive/videos' if doc.media_provider else '/archive/latest') }}">&larr; {{ t('doc.back') }}</a>
       <div class="meta"><b>{{ t.institution(doc.institution) }}</b><span>{{ t.kind(doc.kind) }}</span><span>{{ t.date(doc.published_at, doc.institution) }}</span>{% if doc.duration_sec %}<span>{{ doc.duration_sec | duration }}</span>{% endif %}{% if doc.speaker %}<span>{{ doc.speaker_in(lang) }}{% if doc.speaker_role %}, {{ t.role(doc.speaker_role) }}{% endif %}</span>{% endif %}</div>
       <div class="dtitle">
         <h1 lang="{{ lang if translated else doc.lang }}">{{ title }}</h1>
@@ -47,10 +47,10 @@
     <aside class="drail">
       <div class="askcard">
         <div class="kick">{{ t('doc.ask_about') }}</div>
-        <div class="fu" style="margin-top:0"><div class="lst">{% for q in questions %}<a href="/ask?q={{ (q ~ ' (' ~ title ~ ')') | urlencode }}&doc={{ doc.id }}">{{ q }}</a>{% endfor %}</div></div>
+        <div class="fu" style="margin-top:0"><div class="lst">{% for q in questions %}<a href="{{ u('/ask?q=' ~ ((q ~ ' (' ~ title ~ ')') | urlencode) ~ '&doc=' ~ (doc.id)) }}">{{ q }}</a>{% endfor %}</div></div>
         {{ askbox(doc_id=doc.id) }}
       </div>
-      {% if meeting %}<div class="railbox"><span class="rl">{{ t('doc.meeting') }}</span><a href="/archive/meetings?open={{ meeting.key }}#m-{{ meeting.key }}"><b>{{ t.institution(meeting.institution, short=True) }} &middot; {{ t.date(meeting.statement.published_at, meeting.institution) }}</b></a>{% if meeting.decision %}<span class="rs">{{ t('meetings.decision') }}: {{ meeting.decision }} {{ ai_tag('ai.extracted') }}</span>{% endif %}</div>{% endif %}
+      {% if meeting %}<div class="railbox"><span class="rl">{{ t('doc.meeting') }}</span><a href="{{ u('/archive/meetings?open=' ~ (meeting.key) ~ '#m-' ~ (meeting.key)) }}"><b>{{ t.institution(meeting.institution, short=True) }} &middot; {{ t.date(meeting.statement.published_at, meeting.institution) }}</b></a>{% if meeting.decision %}<span class="rs">{{ t('meetings.decision') }}: {{ meeting.decision }} {{ ai_tag('ai.extracted') }}</span>{% endif %}</div>{% endif %}
       <div class="railbox"><span class="rl">{{ t('doc.original') }}</span><a href="{{ doc.source_url }}" target="_blank" rel="noopener">{{ doc.source_url.split('/')[2] }} &nearr;</a><span class="rs">{{ t('doc.opens_official') }} &middot; {{ lang_badge(doc) }}</span></div>
     </aside>
   </div>

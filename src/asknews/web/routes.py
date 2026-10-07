@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, TypeVar
 
 import yaml
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from asknews.api.deps import connection
@@ -18,19 +19,45 @@ from asknews.archive import documents, meetings, rankings
 from asknews.archive.documents import KINDS, DocumentSummary
 from asknews.db.connection import Connection
 from asknews.settings import get_settings
-from asknews.web.i18n import LANGUAGES, Translator, duration, pick_language
+from asknews.web.i18n import (
+    LANGUAGES,
+    Translator,
+    duration,
+    localized_path,
+    path_language,
+    prefix,
+)
 
 WEB_DIR = Path(__file__).resolve().parent
 router = APIRouter(include_in_schema=False)
 templates = Jinja2Templates(directory=str(WEB_DIR / "templates"))
 templates.env.filters["duration"] = duration
 Conn = Annotated[Connection, Depends(connection)]
-LANG_COOKIE = "lang"
 RANKING_PERIODS = (30, 90, 365, 3650)
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 def language(request: Request) -> str:
-    return pick_language(request.query_params.get("lang") or request.cookies.get(LANG_COOKIE))
+    """The interface language is the path prefix: ``/ja/...`` is Japanese, the root English."""
+    return path_language(request.url.path)[0]
+
+
+def page(path: str) -> Callable[[F], F]:
+    """Register a page under every language: the default at ``path``, the
+    others under their prefix, so each language version has its own URL."""
+
+    def register(endpoint: F) -> F:
+        for lang in LANGUAGES:
+            router.add_api_route(
+                localized_path(path, lang),
+                endpoint,
+                methods=["GET"],
+                response_class=HTMLResponse,
+                name=f"{endpoint.__name__}_{lang}",
+            )
+        return endpoint
+
+    return register
 
 
 @lru_cache(maxsize=1)
@@ -79,35 +106,27 @@ def featured_videos(conn: Connection, lang: str) -> list[tuple[DocumentSummary, 
 
 
 def render(request: Request, template: str, *, page: str, **context: Any) -> HTMLResponse:
-    lang = language(request)
-    t = Translator(lang)
-    response = templates.TemplateResponse(
+    lang, base_path = path_language(request.url.path)
+    query = f"?{request.url.query}" if request.url.query else ""
+    return templates.TemplateResponse(
         request,
         template,
         {
-            "t": t,
+            "t": Translator(lang),
             "lang": lang,
             "page": page,
             "languages": LANGUAGES,
-            "path": request.url.path,
+            "prefix": prefix(lang),
+            "u": lambda path: localized_path(path, lang),
+            "alternates": {code: localized_path(base_path + query, code) for code in LANGUAGES},
+            "canonical_path": localized_path(base_path, lang),
             "settings": get_settings(),
             **context,
         },
     )
-    if request.query_params.get("lang") in LANGUAGES:
-        response.set_cookie(LANG_COOKIE, lang, max_age=365 * 24 * 3600, samesite="lax")
-    return response
 
 
-@router.get("/lang/{code}")
-def switch_language(code: str, next: str = "/") -> Response:
-    target = next if next.startswith("/") and not next.startswith("//") else "/"
-    response = RedirectResponse(target, status_code=303)
-    response.set_cookie(LANG_COOKIE, pick_language(code), max_age=365 * 24 * 3600, samesite="lax")
-    return response
-
-
-@router.get("/", response_class=HTMLResponse)
+@page("/")
 def home(request: Request, conn: Conn) -> HTMLResponse:
     lang = language(request)
     return render(
@@ -122,7 +141,7 @@ def home(request: Request, conn: Conn) -> HTMLResponse:
     )
 
 
-@router.get("/ask", response_class=HTMLResponse)
+@page("/ask")
 def ask_page(request: Request, q: str | None = None, doc: int | None = None) -> HTMLResponse:
     lang = language(request)
     return render(
@@ -135,7 +154,7 @@ def ask_page(request: Request, q: str | None = None, doc: int | None = None) -> 
     )
 
 
-@router.get("/archive", response_class=HTMLResponse)
+@page("/archive")
 def archive_hub(request: Request, conn: Conn) -> HTMLResponse:
     counts = documents.counts(conn)
     counts["briefs"] = len(brief_queries.list_briefs(conn, limit=200))
@@ -150,7 +169,7 @@ def archive_hub(request: Request, conn: Conn) -> HTMLResponse:
     )
 
 
-@router.get("/archive/latest", response_class=HTMLResponse)
+@page("/archive/latest")
 def archive_latest(
     request: Request, conn: Conn, institution: str | None = None, kind: str | None = None
 ) -> HTMLResponse:
@@ -170,7 +189,7 @@ def archive_latest(
     )
 
 
-@router.get("/archive/briefs", response_class=HTMLResponse)
+@page("/archive/briefs")
 def archive_briefs(request: Request, conn: Conn, kind: str | None = None) -> HTMLResponse:
     if kind not in (None, "daily", "meeting"):
         raise HTTPException(status_code=404)
@@ -184,7 +203,7 @@ def archive_briefs(request: Request, conn: Conn, kind: str | None = None) -> HTM
     )
 
 
-@router.get("/archive/videos", response_class=HTMLResponse)
+@page("/archive/videos")
 def archive_videos(request: Request, conn: Conn, institution: str | None = None) -> HTMLResponse:
     items = documents.latest(conn, institution=institution, with_media=True, limit=100)
     return render(
@@ -198,7 +217,7 @@ def archive_videos(request: Request, conn: Conn, institution: str | None = None)
     )
 
 
-@router.get("/archive/rankings", response_class=HTMLResponse)
+@page("/archive/rankings")
 def archive_rankings(
     request: Request, conn: Conn, days: Annotated[int, Query(ge=7, le=3650)] = 90
 ) -> HTMLResponse:
@@ -215,7 +234,7 @@ def archive_rankings(
     )
 
 
-@router.get("/archive/meetings", response_class=HTMLResponse)
+@page("/archive/meetings")
 def archive_meetings(request: Request, conn: Conn, open: str | None = None) -> HTMLResponse:
     found = meetings.list_meetings(conn, limit=60)
     by_month: dict[str, dict[str, meetings.Meeting]] = defaultdict(dict)
@@ -239,7 +258,7 @@ def archive_meetings(request: Request, conn: Conn, open: str | None = None) -> H
     )
 
 
-@router.get("/doc/{document_id}", response_class=HTMLResponse)
+@page("/doc/{document_id}")
 def document_page(request: Request, conn: Conn, document_id: int) -> HTMLResponse:
     found = documents.detail(conn, document_id)
     if found is None:
@@ -267,7 +286,7 @@ def document_page(request: Request, conn: Conn, document_id: int) -> HTMLRespons
     )
 
 
-@router.get("/brief/{brief_id}", response_class=HTMLResponse)
+@page("/brief/{brief_id}")
 def brief_page(request: Request, conn: Conn, brief_id: int) -> HTMLResponse:
     brief = brief_queries.get_brief(conn, brief_id)
     if brief is None:
@@ -290,6 +309,6 @@ def brief_page(request: Request, conn: Conn, brief_id: int) -> HTMLResponse:
     )
 
 
-@router.get("/about", response_class=HTMLResponse)
+@page("/about")
 def about(request: Request) -> HTMLResponse:
     return render(request, "about.html", page="about")

@@ -6,12 +6,12 @@
   {{ archive_header('latest') }}
   <div class="filt col">
     <div class="topics">
-      <a href="/archive/latest{{ '?kind=' ~ kind if kind else '' }}" class="{{ 'on' if not institution else '' }}">{{ t('archive.all') }}</a>
-      {% for code in institutions %}<a href="/archive/latest?institution={{ code }}{{ '&kind=' ~ kind if kind else '' }}" class="{{ 'on' if institution == code else '' }}">{{ t.institution(code, short=True) }}</a>{% endfor %}
+      <a href="{{ u('/archive/latest' ~ ('?kind=' ~ kind if kind else '')) }}" class="{{ 'on' if not institution else '' }}">{{ t('archive.all') }}</a>
+      {% for code in institutions %}<a href="{{ u('/archive/latest?institution=' ~ (code) ~ ('&kind=' ~ kind if kind else '')) }}" class="{{ 'on' if institution == code else '' }}">{{ t.institution(code, short=True) }}</a>{% endfor %}
     </div>
     <div class="topics">
-      <a href="/archive/latest{{ '?institution=' ~ institution if institution else '' }}" class="{{ 'on' if not kind else '' }}">{{ t('archive.all') }}</a>
-      {% for k in kinds %}<a href="/archive/latest?kind={{ k }}{{ '&institution=' ~ institution if institution else '' }}" class="{{ 'on' if kind == k else '' }}">{{ t.kind(k) }}</a>{% endfor %}
+      <a href="{{ u('/archive/latest' ~ ('?institution=' ~ institution if institution else '')) }}" class="{{ 'on' if not kind else '' }}">{{ t('archive.all') }}</a>
+      {% for k in kinds %}<a href="{{ u('/archive/latest?kind=' ~ (k) ~ ('&institution=' ~ institution if institution else '')) }}" class="{{ 'on' if kind == k else '' }}">{{ t.kind(k) }}</a>{% endfor %}
     </div>
   </div>
   <div class="cnt">{{ items | length }} {{ t('archive.results') }}</div>

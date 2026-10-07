@@ -18,7 +18,7 @@
 <div class="wrap">
   {{ archive_header('rankings') }}
   <p class="cnt">{{ t('rankings.note') }}</p>
-  {% set toggle %}<div class="seg2">{% for p in periods %}<a href="/archive/rankings?days={{ p }}" class="{{ 'on' if days == p else '' }}">{{ t('rankings.period.' ~ p) }}</a>{% endfor %}</div>{% endset %}
+  {% set toggle %}<div class="seg2">{% for p in periods %}<a href="{{ u('/archive/rankings?days=' ~ (p)) }}" class="{{ 'on' if days == p else '' }}">{{ t('rankings.period.' ~ p) }}</a>{% endfor %}</div>{% endset %}
   {% set speaker_rows = [] %}
   {% for s in speakers %}{% set _ = speaker_rows.append({'name': s.name_in(lang), 'value': s.speeches + s.press_conferences, 'sub': t.institution(s.institution, short=True) ~ ' &middot; ' ~ (t.role(s.role) if s.role else '') ~ ' &middot; ' ~ s.speeches ~ ' ' ~ t('rankings.speeches') ~ ', ' ~ s.press_conferences ~ ' ' ~ t('rankings.press_conferences') ~ (', ' ~ s.minutes_spoken ~ ' ' ~ t('rankings.minutes') if s.minutes_spoken else '')}) %}{% endfor %}
   {% set publisher_rows = [] %}

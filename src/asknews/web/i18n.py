@@ -75,6 +75,26 @@ def pick_language(value: str | None) -> str:
     return value if value in LANGUAGES else DEFAULT_LANGUAGE
 
 
+def prefix(lang: str) -> str:
+    """The path prefix of a language: the default language lives at the root."""
+    return "" if lang == DEFAULT_LANGUAGE else f"/{lang}"
+
+
+def localized_path(path: str, lang: str) -> str:
+    """``/archive?kind=x`` in ``lang``, e.g. ``/ja/archive?kind=x``; the root becomes ``/ja``."""
+    if path == "/":
+        return prefix(lang) or "/"
+    return prefix(lang) + path
+
+
+def path_language(path: str) -> tuple[str, str]:
+    """``("ja", "/archive")`` for ``/ja/archive``; the default language for any other path."""
+    head, _, rest = path.lstrip("/").partition("/")
+    if head in LANGUAGES and head != DEFAULT_LANGUAGE:
+        return head, "/" + rest
+    return DEFAULT_LANGUAGE, path
+
+
 def duration(seconds: int | float | None) -> str:
     if seconds is None:
         return ""

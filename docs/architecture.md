@@ -77,7 +77,8 @@ generated element with the same AI label; official text is never rewritten.
 
 ## Languages
 
-The interface is English or Japanese, chosen with a cookie. Documents keep
+The interface is English or Japanese, chosen by the path: English at the
+root, Japanese under `/ja`, each page linking its counterpart with `hreflang`. Documents keep
 their original language and show a badge; translated titles are labelled.
 Interface strings live in `src/asknews/locales`; source code, comments and
 documentation are English, enforced by a test.

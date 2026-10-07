@@ -1,4 +1,4 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="wrap"><div class="about"><div class="kick">404</div><h1>{{ t('archive.no_match') }}</h1><p class="lede"><a href="/">{{ t('nav.home') }} &rarr;</a></p></div></div>
+<div class="wrap"><div class="about"><div class="kick">404</div><h1>{{ t('archive.no_match') }}</h1><p class="lede"><a href="{{ u('/') }}">{{ t('nav.home') }} &rarr;</a></p></div></div>
 {% endblock %}

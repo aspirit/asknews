@@ -5,8 +5,8 @@
 <div class="wrap">
   {{ archive_header('videos') }}
   <div class="filt"><div class="topics">
-    <a href="/archive/videos" class="{{ 'on' if not institution else '' }}">{{ t('archive.all') }}</a>
-    {% for code in institutions %}<a href="/archive/videos?institution={{ code }}" class="{{ 'on' if institution == code else '' }}">{{ t.institution(code, short=True) }}</a>{% endfor %}
+    <a href="{{ u('/archive/videos') }}" class="{{ 'on' if not institution else '' }}">{{ t('archive.all') }}</a>
+    {% for code in institutions %}<a href="{{ u('/archive/videos?institution=' ~ (code)) }}" class="{{ 'on' if institution == code else '' }}">{{ t.institution(code, short=True) }}</a>{% endfor %}
   </div></div>
   <div class="cnt">{{ items | length }} {{ t('archive.videos') | lower }}</div>
   <div class="vgrid">{% for doc in items %}{{ video_card(doc) }}{% endfor %}</div>

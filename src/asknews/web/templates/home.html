@@ -8,16 +8,16 @@
     <p class="lede">{{ t('hero.p') }}</p>
     {{ askbox() }}
     <div class="tries"><span class="l">{{ t('ask.try') }}</span>
-      {% for q in questions %}<a class="chip" href="/ask?q={{ q | urlencode }}">{{ q }}</a>{% endfor %}
+      {% for q in questions %}<a class="chip" href="{{ u('/ask?q=' ~ (q | urlencode)) }}">{{ q }}</a>{% endfor %}
     </div>
   </section>
   <section class="home2">
     <div>
-      <div class="sec-h"><h3>{{ t('home.core') }}</h3><a href="/archive/latest">{{ t('home.view_archive') }} &rarr;</a></div>
+      <div class="sec-h"><h3>{{ t('home.core') }}</h3><a href="{{ u('/archive/latest') }}">{{ t('home.view_archive') }} &rarr;</a></div>
       <div class="arows">{% for doc in latest %}{{ archive_row(doc) }}{% endfor %}</div>
     </div>
     <aside>
-      <div class="sec-h"><h3>{{ t('home.featured') }}</h3><a href="/archive/videos">{{ t('home.videos') }} &rarr;</a></div>
+      <div class="sec-h"><h3>{{ t('home.featured') }}</h3><a href="{{ u('/archive/videos') }}">{{ t('home.videos') }} &rarr;</a></div>
       <div class="vlist">{% for doc, why in featured %}{{ video_card(doc, why=why, row=True) }}{% endfor %}</div>
     </aside>
   </section>

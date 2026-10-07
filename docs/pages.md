@@ -9,8 +9,10 @@ it.
 
 - **Navigation:** Home, Ask, Archive, About. On narrow screens the same four
   items form a bottom tab bar.
-- **Interface language:** English or Japanese, English by default, remembered
-  per browser. There is no theme switch.
+- **Interface language:** English or Japanese. English pages live at the root
+  (`/archive`), Japanese ones under `/ja` (`/ja/archive`), so every language
+  version has its own URL; each page links its counterpart and declares
+  `hreflang` alternates. The switch in the header changes the path.
 - **Document language is independent of interface language.** Federal
   Reserve material is English; Bank of Japan material is Japanese. Every list
   item carries an original-language badge, and a document is always shown in

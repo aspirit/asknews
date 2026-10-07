@@ -65,6 +65,11 @@ class Settings(BaseSettings):
         validation_alias="ASKNEWS_CLIENT_SALT",
         description="Salt for the daily client hash used in rate limiting.",
     )
+    site_url: str = Field(
+        default="https://asknews.jp",
+        validation_alias="ASKNEWS_SITE_URL",
+        description="Public origin, used for canonical and alternate-language links.",
+    )
     youtube_api_key: str | None = Field(
         default=None,
         validation_alias="YOUTUBE_API_KEY",

@@ -44,7 +44,7 @@ def test_summaries_store_text_and_translation(api: Api) -> None:
         assert (row["lang"], row["title"], row["summary_model"]) == ("ja", "FOMC声明", "scripted")
         assert summarize_pending(conn, ScriptedLLM(), limit=10) == (0, 0.0)
     # the translation reaches the Japanese interface
-    page = client.get(f"/doc/{ids['statement']}", params={"lang": "ja"}).text
+    page = client.get(f"/ja/doc/{ids['statement']}").text
     assert "FOMC声明" in page
 
 

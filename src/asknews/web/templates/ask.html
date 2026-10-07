@@ -19,7 +19,7 @@
       <div id="turns"></div>
       <div class="composer"><div class="row">
         {{ askbox(placeholder=t('ask.placeholder_followup'), doc_id=doc_id) }}
-        <a class="newq" href="/ask">{{ t('ask.new_question') }}</a>
+        <a class="newq" href="{{ u('/ask') }}">{{ t('ask.new_question') }}</a>
       </div></div>
     </div>
     <aside class="rail" id="rail" hidden>
