@@ -177,20 +177,30 @@ class Passage:
     media_id: str | None
 
 
-def following_segment_ids(conn: Connection, segment_ids: list[int]) -> dict[int, int]:
-    """For each segment, the id of the next segment of its document, when there is one."""
-    if not segment_ids:
+def answer_segment_ids(
+    conn: Connection, question_ids: list[int], *, question_speaker: str
+) -> dict[int, int]:
+    """For each question segment, the first later segment of its document
+    spoken by someone other than the questioner: a long question spans several
+    segments, and the answer is the first segment after all of them."""
+    if not question_ids:
         return {}
     rows = conn.execute(
         """
-        SELECT s.id, n.id AS next_id
+        SELECT s.id, n.id AS answer_id
           FROM segments s
-          JOIN segments n ON n.document_id = s.document_id AND n.position = s.position + 1
+          JOIN LATERAL (
+                SELECT id FROM segments
+                 WHERE document_id = s.document_id AND position > s.position
+                   AND speaker IS DISTINCT FROM %s
+                 ORDER BY position
+                 LIMIT 1
+               ) n ON TRUE
          WHERE s.id = ANY(%s)
         """,
-        (segment_ids,),
+        (question_speaker, question_ids),
     ).fetchall()
-    return {int(r["id"]): int(r["next_id"]) for r in rows}
+    return {int(r["id"]): int(r["answer_id"]) for r in rows}
 
 
 def hydrate(conn: Connection, segment_ids: list[int]) -> dict[int, Passage]:

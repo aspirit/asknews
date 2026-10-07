@@ -59,7 +59,7 @@ def retrieve(
     citations = fuse(merged, passages, query)
     questions = [c.passage.segment_id for c in citations if c.passage.speaker == QUESTION_SPEAKER]
     if questions:
-        following = paths.following_segment_ids(conn, questions)
+        following = paths.answer_segment_ids(conn, questions, question_speaker=QUESTION_SPEAKER)
         answers = paths.hydrate(conn, list(following.values()))
         citations = with_answers(
             citations, {q: answers[n] for q, n in following.items() if n in answers}

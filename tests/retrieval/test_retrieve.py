@@ -182,12 +182,13 @@ def test_a_retrieved_question_brings_its_answer(db: Connection) -> None:
         doc,
         [
             Segment(0, "マイナス金利解除の理由を教えてください。", speaker="Question"),
+            Segment(1, "もう一点、今後のペースについても伺います。", speaker="Question"),
             Segment(
-                1,
+                2,
                 "物価安定の目標の持続的な実現が見通せる状況に至ったためです。",
                 speaker="Kazuo Ueda",
             ),
-            Segment(2, "次の質問です。為替について伺います。", speaker="Question"),
+            Segment(3, "次の質問です。為替について伺います。", speaker="Question"),
         ],
     )
     embed_pending(db, HashEmbedder())
@@ -195,7 +196,7 @@ def test_a_retrieved_question_brings_its_answer(db: Connection) -> None:
         db, HashEmbedder(), "マイナス金利解除の理由は", directory=DIRECTORY, vocab=VOCAB
     )
     positions = [c.passage.position for c in found.citations]
-    assert positions[:2] == [0, 1]  # the question, then the governor's answer
+    assert positions[:2] == [0, 2]  # the question, then the answer past its second part
     assert found.citations[1].passage.speaker == "Kazuo Ueda"
 
 
