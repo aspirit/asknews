@@ -57,6 +57,26 @@ ask summarize --limit 200          # repeat until it reports 0 documents
 ask eval                           # retrieval regression cases should pass
 ```
 
+### Embedding on a small host
+
+The embedding service is fine for the daily trickle of new segments, but a
+2 vCPU host encodes the whole archive (90,000 passages) at under one
+passage per second. For the initial load, or after changing the model,
+embed on a machine with a GPU and ship the vectors:
+
+```sh
+# on the fast machine, against a restore of the production database
+ASKNEWS_EMBEDDER=local ASKNEWS_EMBED_MODEL=intfloat/multilingual-e5-base asknews embed --batch 64
+pg_dump --data-only --table=segment_embeddings "$DATABASE_URL" | gzip > vectors.sql.gz
+# on the host
+docker compose -f docker-compose.prod.yml exec -T db psql -U asknews -d asknews -c "TRUNCATE segment_embeddings"
+gunzip -c vectors.sql.gz | docker compose -f docker-compose.prod.yml exec -T db psql -U asknews -d asknews -q
+```
+
+Segment ids must match, which they do when the host's database was
+restored from the same dump; `asknews embed` on the host then only has to
+cover segments ingested since.
+
 ## Web server and TLS
 
 ```sh
