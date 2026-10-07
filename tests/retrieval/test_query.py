@@ -34,6 +34,19 @@ def test_english_signals() -> None:
     )
     assert "balance" in q.terms
     assert "what" not in q.terms
+    assert q.kinds == ()
+
+
+def test_kind_cues() -> None:
+    minutes = analyse(
+        'Where did the Fed minutes discuss "balance sheet" policy?', DIRECTORY, vocab=VOCAB
+    )
+    assert minutes.kinds == ("minutes",)
+    assert "minutes" in minutes.terms
+    presser = analyse("What did Ueda say at the press conference?", DIRECTORY, vocab=VOCAB)
+    assert presser.kinds == ("press_conference",)
+    ja = analyse("日銀の議事要旨で為替はどう議論されましたか", DIRECTORY, vocab=VOCAB)
+    assert ja.kinds == ("minutes",)
 
 
 def test_recency_is_a_soft_window() -> None:

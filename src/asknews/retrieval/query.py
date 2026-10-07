@@ -77,6 +77,7 @@ class Query:
     terms: tuple[str, ...] = ()
     institutions: tuple[str, ...] = ()
     speakers: tuple[str, ...] = ()  # speaker slugs
+    kinds: tuple[str, ...] = ()  # document kinds the question names ("the minutes")
     window: DateWindow | None = None
     recency: bool = False
     meta: dict[str, object] = field(default_factory=dict)
@@ -120,6 +121,39 @@ def _terms(text: str, lang: str, vocab: Vocabulary | None = None) -> tuple[str, 
         if term not in temporal:
             seen.setdefault(term, None)
     return tuple(seen)
+
+
+# Words that name a kind of document. They stay search terms too, since
+# transcripts refer to "the statement" and minutes to "the meeting".
+_KIND_CUES: dict[str, dict[str, tuple[str, ...]]] = {
+    "en": {
+        "minutes": ("minutes",),
+        "statement": ("statement",),
+        "press_conference": ("press conference", "presser", "transcript"),
+        "speech": ("speech", "remarks"),
+        "report": ("outlook report", "projections", "summary of opinions"),
+    },
+    "ja": {
+        "minutes": (chr(0x8B70) + chr(0x4E8B) + chr(0x8981) + chr(0x65E8),),  # minutes
+        "statement": (chr(0x58F0) + chr(0x660E), chr(0x516C) + chr(0x8868) + chr(0x6587)),
+        "press_conference": (
+            chr(0x8A18) + chr(0x8005) + chr(0x4F1A) + chr(0x898B),
+            chr(0x4F1A) + chr(0x898B),
+        ),
+        "speech": (chr(0x8B1B) + chr(0x6F14),),
+        "report": (
+            chr(0x5C55) + chr(0x671B),
+            chr(0x4E3B) + chr(0x306A) + chr(0x610F) + chr(0x898B),
+        ),
+    },
+}
+
+
+def _kinds(text: str, lang: str) -> tuple[str, ...]:
+    haystack = text.lower() if lang == "en" else text
+    return tuple(
+        kind for kind, cues in _KIND_CUES.get(lang, {}).items() if any(c in haystack for c in cues)
+    )
 
 
 def _institutions(lowered: str, vocab: Vocabulary) -> tuple[str, ...]:
@@ -177,6 +211,7 @@ def analyse(
         terms=_terms(text, lang, vocab),
         institutions=_institutions(lowered, vocab),
         speakers=speakers,
+        kinds=_kinds(text, lang),
         window=window,
         recency=recency,
     )

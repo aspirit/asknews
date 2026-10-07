@@ -52,6 +52,8 @@ def fused_score(candidate: Candidate, passage: Passage, query: Query) -> float:
         score -= _QUESTION_PENALTY
     if passage.institution in query.institutions:
         score += 0.02
+    if passage.kind in query.kinds:
+        score += 0.03  # "the minutes", "the press conference": the kind asked for
     if passage.speaker_slug and passage.speaker_slug in query.speakers:
         score += 0.03
     if (
