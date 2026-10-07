@@ -48,9 +48,13 @@ _VIDEO_TAG = re.compile(r"<video\b[^>]*>", re.IGNORECASE)
 _ATTR = re.compile(r'(data-video-id|data-account)="(\d+)"')
 _TRANSCRIPT = re.compile(r'href="(/mediacenter/files/FOMCpresconf\d{8}\.pdf)"')
 _POLICY_KEY = re.compile(r'policyKey:"([^"]+)"')
+_APOSTROPHES = "['" + chr(0x2019) + "]"  # straight or typographic
 _PRINCIPAL = re.compile(
-    r"\b(Chair(?:man|woman)?|Vice Chair(?:man|woman)?)\s+([A-Z][A-Za-z'\-]+)'s Press Conference"
+    r"\b(Chair(?:man|woman)?|Vice Chair(?:man|woman)?)\s+([A-Z][A-Za-z\-]+)"
+    + _APOSTROPHES
+    + r"s Press Conference"
 )
+_LABEL = re.compile(r"^(Chair(?:man|woman)?|Vice Chair(?:man|woman)?)\s+([A-Z][A-Za-z\-]+)$")
 
 
 class PageError(ValueError):
@@ -170,15 +174,31 @@ def _video(fetcher: Fetcher, page: PageInfo, *, refresh: bool) -> tuple[Video, F
     raise AssertionError("unreachable")
 
 
-def _speaker_id(conn: Connection, directory: SpeakerDirectory, text: str) -> int | None:
-    role, surname = principal_speaker(text)
+def _speaker_id(
+    conn: Connection,
+    directory: SpeakerDirectory,
+    *,
+    head: str,
+    segments: list[Segment],
+    when: datetime,
+) -> int | None:
+    """Resolve the principal speaker: transcript title, else the first speaker
+    label in the captions, else whoever headed the institution that day."""
+    role, surname = principal_speaker(head)
     if surname is None:
-        return None
-    spec = directory.find(INSTITUTION, surname)
+        label = next((s.speaker for s in segments if s.speaker), None)
+        match = _LABEL.match(label) if label else None
+        if match:
+            role, surname = match.group(1), match.group(2)
+    spec = directory.find(INSTITUTION, surname) if surname else None
+    if spec is None and surname is None:
+        spec = directory.head_on(INSTITUTION, when.date())
     if spec is not None:
         return upsert_speaker(
             conn, institution=INSTITUTION, slug=spec.slug, name=spec.name, role=spec.role
         )
+    if surname is None:
+        return None
     slug = re.sub(r"[^a-z]", "", surname.lower())
     return upsert_speaker(conn, institution=INSTITUTION, slug=slug, name=surname, role=role)
 
@@ -233,7 +253,9 @@ def ingest_press_conference(
                 "poster": video.poster,
                 "timestamped": timestamped,
             },
-            speaker_id=_speaker_id(conn, directory, body[:400]),
+            speaker_id=_speaker_id(
+                conn, directory, head=body[:400], segments=segments, when=published_at
+            ),
         ),
     )
     upsert_media(conn, document_id, Media("brightcove", page.video_id, video.duration_sec))

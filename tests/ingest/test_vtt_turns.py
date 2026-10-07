@@ -78,3 +78,15 @@ def test_single_long_sentence_stays_whole() -> None:
     doc = [Cue(0, 1, "CHAIR POWELL. " + "word " * 100 + "end")]
     segments = segment_cues(doc, max_chars=50)
     assert len(segments) == 1
+
+
+def test_caption_line_markers_are_stripped() -> None:
+    doc = "WEBVTT\n\n00:01.000 --> 00:02.000\n- Good afternoon.\n- I am pleased to join you.\n"
+    assert parse_vtt(doc)[0].text == "Good afternoon. I am pleased to join you."
+
+
+def test_colon_after_speaker_label_is_accepted() -> None:
+    doc = [Cue(0, 1, "CHAIRMAN BERNANKE: Good afternoon. Before we get to questions, a summary.")]
+    turns = speaker_turns(doc)
+    assert [t.speaker for t in turns] == ["Chairman Bernanke"]
+    assert turns[0].text.startswith("Good afternoon.")

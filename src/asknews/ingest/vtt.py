@@ -17,6 +17,7 @@ _TIMING = re.compile(
 )
 _TAG = re.compile(r"<[^>]+>")
 _SPACE = re.compile(r"\s+")
+_LINE_MARKER = re.compile(r"^\s*(?:-|>>)\s+")  # speaker-change dashes some caption files use
 
 
 class VttError(ValueError):
@@ -55,7 +56,7 @@ def parse_vtt(text: str) -> list[Cue]:
         match = _TIMING.match(lines[timing_index].strip())
         if match is None:
             raise VttError(f"bad timing line: {lines[timing_index]!r}")
-        raw = " ".join(lines[timing_index + 1 :])
+        raw = " ".join(_LINE_MARKER.sub("", line) for line in lines[timing_index + 1 :])
         clean = _SPACE.sub(" ", html.unescape(_TAG.sub("", raw))).strip()
         if clean:
             cues.append(Cue(parse_timestamp(match["start"]), parse_timestamp(match["end"]), clean))

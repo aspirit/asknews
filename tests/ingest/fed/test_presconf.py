@@ -161,3 +161,18 @@ def test_expired_caption_url_triggers_one_refresh(
     assert outcome.timestamped is True
     playback_calls = [r for r in routes.requests if "playback/v1" in str(r.url)]
     assert len(playback_calls) == 2
+
+
+def test_principal_speaker_accepts_typographic_apostrophe() -> None:
+    title = "Transcript of Chairman Bernanke" + chr(0x2019) + "s Press Conference"
+    assert presconf.principal_speaker(title) == ("Chairman", "Bernanke")
+
+
+def test_head_of_institution_by_date() -> None:
+    from datetime import date
+
+    directory = load_speakers(REPO_ROOT / "domain" / "speakers.yaml")
+    assert directory.head_on("fed", date(2014, 3, 19)) is not None
+    assert directory.head_on("fed", date(2014, 3, 19)).slug == "yellen"  # type: ignore[union-attr]
+    assert directory.head_on("fed", date(2012, 4, 25)).slug == "bernanke"  # type: ignore[union-attr]
+    assert directory.head_on("boj", date(2012, 4, 25)) is None

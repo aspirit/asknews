@@ -8,6 +8,7 @@ stays free of names and the configuration can be edited without a release.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 from functools import lru_cache
 from pathlib import Path
 
@@ -24,6 +25,7 @@ class SpeakerSpec:
     role: str | None
     match: tuple[str, ...]
     name_ja: str | None = None
+    tenure: tuple[date, date | None] | None = None  # when the person held the top job
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +42,24 @@ class SpeakerDirectory:
     def get(self, slug: str) -> SpeakerSpec | None:
         return next((s for s in self.speakers if s.slug == slug), None)
 
+    def head_on(self, institution: str, when: date) -> SpeakerSpec | None:
+        """The speaker whose tenure as head of ``institution`` covers ``when``."""
+        for spec in self.speakers:
+            if spec.institution != institution or spec.tenure is None:
+                continue
+            start, end = spec.tenure
+            if start <= when and (end is None or when <= end):
+                return spec
+        return None
+
+
+def _tenure(value: object) -> tuple[date, date | None] | None:
+    if not isinstance(value, dict) or "from" not in value:
+        return None
+    start = date.fromisoformat(str(value["from"]))
+    end = date.fromisoformat(str(value["to"])) if value.get("to") else None
+    return (start, end)
+
 
 def _speaker_spec(institution: str, entry: dict[str, object]) -> SpeakerSpec:
     match = entry.get("match") or []
@@ -50,6 +70,7 @@ def _speaker_spec(institution: str, entry: dict[str, object]) -> SpeakerSpec:
         role=str(entry["role"]) if entry.get("role") else None,
         match=tuple(str(m) for m in match) if isinstance(match, list) else (),
         name_ja=str(entry["name_ja"]) if entry.get("name_ja") else None,
+        tenure=_tenure(entry.get("tenure")),
     )
 
 

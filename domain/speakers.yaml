@@ -1,23 +1,27 @@
 # People whose speeches and press conferences the archive carries.
 # `match` lists surname spellings as they appear in transcript titles and
-# speech pages; the first match wins. Unknown speakers are created on the
-# fly from the title and can be given a proper entry here afterwards.
+# speech pages; the first match wins. `tenure` marks the period a person
+# headed the institution, used when a press conference names nobody.
+# Unknown speakers are created on the fly and can be given an entry later.
 fed:
   - slug: bernanke
     name: Ben S. Bernanke
     name_ja: ベン・バーナンキ
     role: Chairman
     match: [Bernanke]
+    tenure: {from: "2006-02-01", to: "2014-01-31"}
   - slug: yellen
     name: Janet L. Yellen
     name_ja: ジャネット・イエレン
     role: Chair
     match: [Yellen]
+    tenure: {from: "2014-02-03", to: "2018-02-03"}
   - slug: powell
     name: Jerome H. Powell
     name_ja: ジェローム・パウエル
     role: Chair
     match: [Powell]
+    tenure: {from: "2018-02-05", to: "2026-05-15"}
   - slug: warsh
     name: Kevin Warsh
     name_ja: ケビン・ウォーシュ
