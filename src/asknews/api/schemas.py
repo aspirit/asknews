@@ -129,16 +129,27 @@ class AskOut(BaseModel):
     request_id: int | None = None
 
 
+class DecisionOut(BaseModel):
+    text: str
+    range: str
+    action: str
+    change_bp: int | None
+    unanimous: bool | None
+    dissenters: list[str]
+    votes: str | None
+
+
 class MeetingPartOut(BaseModel):
     role: str
-    document: DocumentOut
+    status: str  # present | scheduled | missing | none
+    document: DocumentOut | None = None
 
 
 class MeetingOut(BaseModel):
     key: str
     institution: str
     date: str
-    decision: str | None
+    decision: DecisionOut | None
     parts: list[MeetingPartOut]
 
 

@@ -69,7 +69,7 @@ A hub page with five sections, each also reachable directly.
 | Briefs | Daily brief for each day with at least one release, and a meeting brief after each FOMC meeting and Monetary Policy Meeting; each brief cites the documents it draws on | generated, labelled |
 | Videos | Every press conference, filterable by publisher and year; each card shows date, speaker, duration and whether the transcript has timestamps | media, documents |
 | Rankings | Speakers, publishers and topics (below) | computed from documents and segments |
-| Meetings | Timeline of policy meetings of both central banks; each meeting bundles its statement, press conference, minutes and projections or outlook report, with a generated title and summary and the extracted policy decision | meetings derived from documents by date |
+| Meetings | Timeline of policy meetings of both central banks; each meeting bundles its statement, press conference, minutes and projections or outlook report, with a generated title and summary and the extracted policy decision (rate, change in basis points, vote); a document not in the bundle is marked scheduled, not indexed, or not published for that meeting | meetings derived from documents by date |
 
 **Rankings** are three boards computed from published material:
 

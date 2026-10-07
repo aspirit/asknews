@@ -24,21 +24,31 @@ Question = Annotated[str, Query(min_length=2, max_length=500)]
 
 def _meeting_out(meeting: meetings.Meeting, lang: str) -> schemas.MeetingOut:
     parts = [
-        schemas.MeetingPartOut(role=role, document=schemas.DocumentOut.from_summary(doc, lang))
-        for role, doc in (
-            ("statement", meeting.statement),
-            ("press_conference", meeting.press_conference),
-            ("minutes", meeting.minutes),
-            ("opinions", meeting.opinions),
-            ("outlook", meeting.outlook),
+        schemas.MeetingPartOut(
+            role=part.role,
+            status=part.status,
+            document=schemas.DocumentOut.from_summary(part.document, lang)
+            if part.document is not None
+            else None,
         )
-        if doc is not None
+        for part in meeting.parts
     ]
+    decision = meeting.decision
     return schemas.MeetingOut(
         key=meeting.key,
         institution=meeting.institution,
         date=meeting.date.isoformat(),
-        decision=meeting.decision,
+        decision=schemas.DecisionOut(
+            text=decision.text,
+            range=decision.range_text,
+            action=decision.action,
+            change_bp=decision.change_bp,
+            unanimous=decision.unanimous,
+            dissenters=list(decision.dissenters),
+            votes=decision.votes,
+        )
+        if decision
+        else None,
         parts=parts,
     )
 

@@ -67,8 +67,16 @@ def test_meetings_bundle_documents_by_date(api: Api) -> None:
     body = client.get("/api/meetings").json()
     assert len(body) == 1
     meeting = body[0]
-    assert (meeting["key"], meeting["decision"]) == ("fed:20250917", "4 to 4-1/4 percent")
-    assert [p["role"] for p in meeting["parts"]] == ["statement", "press_conference", "minutes"]
+    assert meeting["key"] == "fed:20250917"
+    assert meeting["decision"]["text"] == "4 to 4-1/4 percent"
+    assert (meeting["decision"]["change_bp"], meeting["decision"]["action"]) == (-25, "lower")
+    status = {p["role"]: p["status"] for p in meeting["parts"]}
+    assert status == {
+        "statement": "present",
+        "press_conference": "present",
+        "minutes": "present",
+        "outlook": "missing",  # a September meeting publishes projections
+    }
 
 
 def test_rankings(api: Api) -> None:

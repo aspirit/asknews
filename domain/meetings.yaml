@@ -1,0 +1,6 @@
+# Titles that mark a policy-meeting statement, matched as substrings. Other
+# statements by the same publishers (long-run goals, operational notices,
+# extraordinary measures) do not start a meeting in the timeline.
+statement_titles:
+  fed: ["FOMC statement"]
+  boj: ["当面の金融政策運営について", "金融市場調節方針の変更について"]

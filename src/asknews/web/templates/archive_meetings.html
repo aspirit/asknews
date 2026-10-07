@@ -1,11 +1,14 @@
 {% extends "base.html" %}
 {% from "_macros.html" import ai_tag, lang_badge, archive_header with context %}
 {% block title %}{{ t('archive.meetings') }} &middot; {{ t('site.name') }}{% endblock %}
-{% macro part(label, doc) %}
-<div class="part"><span class="pl">{{ label }}</span>
-  {% if doc %}<a href="/doc/{{ doc.id }}">{{ doc.title_in(lang)[0] }} <span class="pd">{{ t.date(doc.published_at, doc.institution, form='short') }}</span> {{ lang_badge(doc) }}</a>{% else %}<span class="pn">{{ t('meetings.pending') }}</span>{% endif %}
+{% macro part(p, code) %}
+<div class="part"><span class="pl">{{ t('meetings.projections') if p.role == 'outlook' and code == 'fed' else t('meetings.' ~ p.role) }}</span>
+  {% if p.document %}<a href="/doc/{{ p.document.id }}">{{ p.document.title_in(lang)[0] }} <span class="pd">{{ t.date(p.document.published_at, p.document.institution, form='short') }}</span> {{ lang_badge(p.document) }}</a>{% else %}<span class="pn {{ p.status }}">{{ t('meetings.' ~ p.status) }}</span>{% endif %}
 </div>
 {% endmacro %}
+{% macro decision_badge(d) -%}
+{% if d.change_bp %}{{ '%+d' % d.change_bp }} bp &rarr; {% elif d.change_bp == 0 %}{{ t('meetings.hold') }} &middot; {% endif %}{{ d.range_text }}
+{%- endmacro %}
 {% block content %}
 <div class="wrap">
   {{ archive_header('meetings') }}
@@ -22,15 +25,15 @@
           <summary class="mh">
             <span class="md">{{ t.institution(code, short=True) }} &middot; {{ t.date(m.statement.published_at, code) }}</span>
             <span class="mt"><b>{{ briefs[m.key].title_in(lang) if m.key in briefs else m.statement.title_in(lang)[0] }}</b>{% if m.key in briefs %} {{ ai_tag('ai.title') }}{% endif %}</span>
-            {% if m.decision %}<span class="mdec">{{ m.decision }}</span>{% endif %}
+            {% if m.decision %}<span class="mdec">{{ decision_badge(m.decision) }}</span>{% endif %}
             <span class="mx">+</span>
           </summary>
           <div class="mb">
-            {{ part(t('meetings.statement'), m.statement) }}
-            {{ part(t('meetings.press_conference'), m.press_conference) }}
-            {{ part(t('meetings.minutes'), m.minutes) }}
-            {% if code == 'boj' %}{{ part(t('meetings.opinions'), m.opinions) }}{{ part(t('meetings.outlook'), m.outlook) }}{% endif %}
-            {% if m.decision %}<div class="mext"><div class="mlbl">{{ t('meetings.decision') }} {{ ai_tag('ai.extracted') }}</div><ul><li><span>{{ m.decision }}</span>{% if m.statement %}<a class="c" href="/doc/{{ m.statement.id }}">{{ t('meetings.statement') }}</a>{% endif %}</li></ul></div>{% endif %}
+            {% for p in m.parts %}{{ part(p, code) }}{% endfor %}
+            {% if m.decision %}{% set d = m.decision %}<div class="mext"><div class="mlbl">{{ t('meetings.decision') }} {{ ai_tag('ai.extracted') }}</div><ul>
+              <li><span>{{ decision_badge(d) }} &middot; {{ d.text }}</span>{% if m.statement %}<a class="c" href="/doc/{{ m.statement.id }}">{{ t('meetings.statement') }}</a>{% endif %}</li>
+              {% if d.unanimous %}<li><span>{{ t('meetings.unanimous') }}{% if d.votes %} ({{ d.votes }}){% endif %}</span></li>{% elif d.dissenters %}<li><span>{{ t('meetings.dissent', n=d.dissenters | length, names=d.dissenters | join(', ')) }}{% if d.votes %} ({{ d.votes }}){% endif %}</span></li>{% endif %}
+            </ul></div>{% endif %}
             {% if m.key in briefs %}<div class="mext"><div class="mlbl">{{ t('archive.meeting_brief') }} {{ ai_tag('ai.brief') }}</div><ul>{% for p in briefs[m.key].points_in(lang) %}<li><span>{{ p.text }}</span></li>{% endfor %}</ul><a class="btn ghost" href="/brief/{{ briefs[m.key].id }}">{{ t('archive.meeting_brief') }} &rarr;</a></div>{% endif %}
           </div>
         </details>

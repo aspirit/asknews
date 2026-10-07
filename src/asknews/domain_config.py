@@ -138,6 +138,18 @@ def topics_version(candidates: Sequence[Topic]) -> str:
     return digest[:12]
 
 
+def load_meeting_statement_titles(path: Path) -> dict[str, tuple[str, ...]]:
+    raw = yaml.safe_load(path.read_text("utf-8")) or {}
+    titles = raw.get("statement_titles") or {}
+    return {str(code): tuple(str(t) for t in values or ()) for code, values in titles.items()}
+
+
+@lru_cache(maxsize=1)
+def meeting_statement_titles() -> dict[str, tuple[str, ...]]:
+    """Substrings that identify a policy-meeting statement, per publisher."""
+    return load_meeting_statement_titles(get_settings().domain_dir / "meetings.yaml")
+
+
 @lru_cache(maxsize=1)
 def topics() -> tuple[Topic, ...]:
     return load_topics(get_settings().domain_dir / "topics.yaml")
