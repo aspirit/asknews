@@ -6,6 +6,7 @@ from asknews.ingest.boj import (
     pack_ja,
     parse_ja_date,
     parse_month_day,
+    pdf_paragraphs,
     split_sentences,
 )
 
@@ -19,6 +20,7 @@ def test_normalise_folds_fullwidth_digits_and_letter_spacing() -> None:
     assert normalise(spaced) == "本議事要旨"
     assert normalise("rate 1.25% stays") == "rate 1.25% stays"
     assert normalise("１．２５％") == "1.25%"
+    assert normalise("0． 75％程度") == "0.75%程度"  # a spaced-out decimal point
     assert normalise("（問）") == "（問）"  # Japanese punctuation is left alone
     assert normalise("202 6 年 7 月 3 1 日") == "2026年7月31日"
 
@@ -33,6 +35,14 @@ def test_dates() -> None:
 
 def test_clean_title_strips_size_note() -> None:
     assert clean_title("総裁記者会見 [PDF 249KB]") == "総裁記者会見"
+
+
+def test_pdf_paragraphs_drop_page_numbers_before_joining_wraps() -> None:
+    text = "金融緩和の度合いを調整する\n2\nことが適切である。\n\n3\n\n続いて次の質問です。\n 12 \n"
+    assert pdf_paragraphs(text) == [
+        "金融緩和の度合いを調整することが適切である。",
+        "続いて次の質問です。",
+    ]
 
 
 def test_sentence_split_and_packing() -> None:

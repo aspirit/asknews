@@ -36,7 +36,11 @@ _FOLD = {
 }
 _FOLD[0x3000] = " "
 _FOLD[0x00A0] = " "
-_DOTTED_NUMBER = re.compile(r"(?<=\d)[．，](?=\d)")
+# A full-width point or comma between digits is a decimal or thousands
+# separator; PDF layouts sometimes space the point out ("0． 75").
+_DOTTED_NUMBER = re.compile(r"(?<=\d)[．，](?=\d)|(?<=\d)． (?=\d)")
+# A line holding nothing but a page number, as PDF text layers carry them.
+_PAGE_NUMBER_LINE = re.compile(r"(?m)^[ \t]*\d{1,3}[ \t]*$\n?")
 # PDF layouts also scatter single spaces inside numbers and dates ("202 6 年 7 月").
 _SPACED_NUMBER = re.compile(r"(?<=\d) (?=\d)|(?<=\d) (?=[年月日%])|(?<=[年月]) (?=\d)")
 
@@ -46,7 +50,7 @@ def normalise(text: str) -> str:
     separators inside numbers, and remove the letter-spacing some PDF layouts
     insert between Japanese characters."""
     text = text.translate(_FOLD)
-    text = _DOTTED_NUMBER.sub(lambda m: "." if m.group(0) == "．" else ",", text)
+    text = _DOTTED_NUMBER.sub(lambda m: "." if "．" in m.group(0) else ",", text)
     text = _SPACED_NUMBER.sub("", text)
     return _SPACED_CJK.sub("", text)
 
@@ -119,11 +123,17 @@ def pack_ja(paragraphs: Sequence[str], *, max_chars: int = SEGMENT_CHARS) -> lis
     return chunks
 
 
+def strip_page_numbers(text: str) -> str:
+    """Remove lines that hold only a page number, before line wraps are joined."""
+    return _PAGE_NUMBER_LINE.sub("", text)
+
+
 def pdf_paragraphs(text: str) -> list[str]:
     """Paragraphs of a Japanese PDF text layer: blank lines separate paragraphs
-    and line wraps inside a paragraph carry no meaning, so they are removed."""
+    and line wraps inside a paragraph carry no meaning, so they are removed.
+    Page numbers on their own lines are dropped first."""
     out: list[str] = []
-    for block in re.split(r"\n\s*\n", normalise(text)):
+    for block in re.split(r"\n\s*\n", strip_page_numbers(normalise(text))):
         joined = re.sub(r"[ \t]*\n[ \t]*", "", block).strip()
         if joined:
             out.append(joined)

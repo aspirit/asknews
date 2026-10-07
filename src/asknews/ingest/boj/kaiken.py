@@ -29,6 +29,7 @@ from asknews.ingest.boj import (
     pack_ja,
     parse_ja_date,
     parse_month_day,
+    strip_page_numbers,
 )
 from asknews.ingest.htmltext import content_window, paragraphs
 from asknews.ingest.http import Fetcher, FetchError
@@ -107,7 +108,7 @@ def list_press_conferences(fetcher: Fetcher, *, since: int = FIRST_YEAR) -> list
 
 def qa_blocks(text: str) -> list[Block]:
     """Split normalised text into alternating question and answer blocks."""
-    pieces = _MARKER.split(normalise(text))
+    pieces = _MARKER.split(strip_page_numbers(normalise(text)))
     blocks: list[Block] = []
     for marker, body in zip(pieces[1::2], pieces[2::2], strict=False):
         cleaned = re.sub(r"[ \t]*\n[ \t]*", "", body).strip()  # PDF line wraps

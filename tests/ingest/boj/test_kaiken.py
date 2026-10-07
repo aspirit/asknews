@@ -52,11 +52,13 @@ def test_qa_blocks_from_html_and_pdf_style_text() -> None:
     blocks = kaiken.qa_blocks(text)
     assert [b.kind for b in blocks] == ["q", "a", "q", "a"]
     assert blocks[1].text.startswith("本日の決定会合では")
-    pdf_like = "（問）\n一問目は中東情勢に\nついてです。\n\n（答）\nまず、中東\n情勢ですが。"
+    pdf_like = (
+        "（問）\n一問目は中東情勢に\nついてです。\n\n（答）\nまず、中東\n2\n情勢ですが。\n3\n"
+    )
     pdf_blocks = kaiken.qa_blocks(pdf_like)
     assert [b.text for b in pdf_blocks] == [
         "一問目は中東情勢についてです。",
-        "まず、中東情勢ですが。",
+        "まず、中東情勢ですが。",  # page numbers between the wrapped lines are gone
     ]
 
 
