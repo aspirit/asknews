@@ -16,7 +16,10 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Topic :: Text Processing :: Indexing",
 ]
-dependencies = []
+dependencies = [
+    "psycopg[binary]>=3.2",
+    "pydantic-settings>=2.10",
+]
 
 [project.urls]
 Repository = "https://github.com/aspirit/asknews"

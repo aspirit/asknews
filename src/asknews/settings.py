@@ -1,0 +1,32 @@
+"""Runtime configuration, loaded once from the environment.
+
+Only values that differ between deployments live here. Anything that is a
+property of the product (chunk sizes, retrieval limits, prompts) is code or
+domain configuration, not an environment variable.
+"""
+
+from __future__ import annotations
+
+from functools import lru_cache
+
+from pydantic import Field, PostgresDsn
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    database_url: PostgresDsn = Field(
+        validation_alias="DATABASE_URL",
+        description="PostgreSQL connection URL; the database must have the pgvector extension.",
+    )
+
+    @property
+    def database_dsn(self) -> str:
+        return str(self.database_url)
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    """Return the process-wide settings, reading the environment on first use."""
+    return Settings()  # type: ignore[call-arg]  # fields come from the environment
