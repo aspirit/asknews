@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -96,6 +99,13 @@ def test_ask_and_about_pages(api: Api) -> None:
     ask = client.get("/ask", params={"q": "What did the Fed decide?"})
     assert 'data-question="What did the Fed decide?"' in ask.text
     assert "ask.js" in ask.text
+    # The interface strings the script reads must be a JSON script block: a
+    # <template> element's text is empty in browsers and the script would die.
+    strings = re.search(
+        r'<script type="application/json" id="tpl-strings">(.*?)</script>', ask.text, re.S
+    )
+    assert strings is not None
+    assert json.loads(strings.group(1))["questions"]
     about = client.get("/about").text
     assert "Data sources and terms" in about
     assert client.get("/static/app.css").status_code == 200

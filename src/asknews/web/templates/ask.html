@@ -28,7 +28,7 @@
     </aside>
   </div>
 </div>
-<template id="tpl-strings">{{ {
+<script type="application/json" id="tpl-strings">{{ {
   'searching': t('ask.searching'), 'reading': t('ask.reading'), 'writing': t('ask.writing'),
   'your_question': t('ask.your_question'), 'sources_used': t('ask.sources_used'),
   'answered_in': t('ask.answered_in'), 'grounded': t('ask.grounded'), 'followups': t('ask.followups'),
@@ -39,6 +39,6 @@
   'kinds': {'press_conference': t('kind.press_conference'), 'statement': t('kind.statement'), 'minutes': t('kind.minutes'), 'speech': t('kind.speech'), 'report': t('kind.report'), 'release': t('kind.release')},
   'inst': {'fed': t.institution('fed', short=True), 'boj': t.institution('boj', short=True), 'ecb': t.institution('ecb', short=True), 'bis': t.institution('bis', short=True), 'bea': t.institution('bea', short=True), 'mof': t.institution('mof', short=True), 'fsa': t.institution('fsa', short=True), 'boe': t.institution('boe', short=True)},
   'questions': questions
-} | tojson }}</template>
+} | tojson }}</script>
 {% endblock %}
 {% block scripts %}<script src="/static/ask.js" defer></script>{% endblock %}

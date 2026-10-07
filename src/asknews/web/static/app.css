@@ -32,6 +32,9 @@ p{margin:0;text-wrap:pretty}h1,h2,h3{margin:0;text-wrap:balance}
 .lang a.on,.lang button.on{background:var(--ink);color:#fff}
 .tabbar{display:none}
 
+/* The hidden attribute must win over display rules on the same element. */
+[hidden]{display:none!important}
+
 /* ask box */
 .askbox{display:flex;border:2px solid var(--ink);background:#fff}
 .askbox input{flex:1;min-width:0;border:0;outline:0;padding:16px 18px;font:inherit;font-size:17px;background:none}
