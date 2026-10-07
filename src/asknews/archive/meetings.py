@@ -205,11 +205,13 @@ def boj_decision(
         if against
         else ()
     )
+    # The vote count beside the decision is authoritative; "unanimous" may
+    # describe another item of the same statement.
     unanimous: bool | None = None
-    if _UNANIMOUS in statement_body:
-        unanimous = True
-    elif votes_match:
+    if votes_match:
         unanimous = int(votes_match.group(2)) == 0
+    elif _UNANIMOUS in statement_body:
+        unanimous = True
     return Decision(
         text=text,
         low=rate,

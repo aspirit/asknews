@@ -31,7 +31,7 @@
           <div class="mb">
             {% for p in m.parts %}{{ part(p, code) }}{% endfor %}
             {% if m.decision %}{% set d = m.decision %}<div class="mext"><div class="mlbl">{{ t('meetings.decision') }} {{ ai_tag('ai.extracted') }}</div><ul>
-              <li><span>{{ decision_badge(d) }} &middot; {{ d.text }}</span>{% if m.statement %}<a class="c" href="/doc/{{ m.statement.id }}">{{ t('meetings.statement') }}</a>{% endif %}</li>
+              <li><span>{{ decision_badge(d) }}{% if d.text != d.range_text %} &middot; {{ d.text }}{% endif %}</span>{% if m.statement %}<a class="c" href="/doc/{{ m.statement.id }}">{{ t('meetings.statement') }}</a>{% endif %}</li>
               {% if d.unanimous %}<li><span>{{ t('meetings.unanimous') }}{% if d.votes %} ({{ d.votes }}){% endif %}</span></li>{% elif d.dissenters %}<li><span>{{ t('meetings.dissent', n=d.dissenters | length, names=d.dissenters | join(', ')) }}{% if d.votes %} ({{ d.votes }}){% endif %}</span></li>{% endif %}
             </ul></div>{% endif %}
             {% if m.key in briefs %}<div class="mext"><div class="mlbl">{{ t('archive.meeting_brief') }} {{ ai_tag('ai.brief') }}</div><ul>{% for p in briefs[m.key].points_in(lang) %}<li><span>{{ p.text }}</span></li>{% endfor %}</ul><a class="btn ghost" href="/brief/{{ briefs[m.key].id }}">{{ t('archive.meeting_brief') }} &rarr;</a></div>{% endif %}

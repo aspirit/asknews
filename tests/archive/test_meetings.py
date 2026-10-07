@@ -72,6 +72,9 @@ def test_boj_decision_rate_change_and_vote() -> None:
     assert decision.range_text == "1.25%"
     assert (decision.votes, decision.unanimous) == ("7-2", False)
     assert decision.dissenters == ("浅田", "佐藤")
+    split = boj_decision(body + "長期国債の買入れは全員一致で決定した。", previous_rate=1.0)
+    assert split is not None
+    assert split.unanimous is False  # the count beside the decision wins
     first = boj_decision("無担保コールレートを、0.5%程度で推移するよう促す。全員一致。")
     assert first is not None
     assert (first.change_bp, first.action, first.unanimous) == (None, "set", True)
