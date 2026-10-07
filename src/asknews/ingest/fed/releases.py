@@ -93,6 +93,7 @@ class Release:
     external_id: str
     date: str  # YYYYMMDD, the meeting or speech date
     released: str | None = None  # YYYYMMDD when the calendar gives a later release date
+    unscheduled: bool = False  # the calendar marks the meeting "(unscheduled)"
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,6 +117,17 @@ def _strip(markup: str) -> str:
     return re.sub(r"\s+", " ", _TAGS.sub("", markup)).strip()
 
 
+def _unscheduled(page: str, position: int) -> bool:
+    """Whether the meeting block a statement link sits in is marked unscheduled.
+
+    Historical pages head each meeting with an ``h5``; the current calendar
+    uses a ``fomc-meeting`` block. The heading text carries "(unscheduled)".
+    """
+    starts = ("<h5", "<h4", "panel panel-default", "fomc-meeting")
+    start = max(page.rfind(marker, 0, position) for marker in starts)
+    return "unscheduled" in page[max(start, 0) : position].lower()
+
+
 def _ymd(text: str) -> str:
     return datetime.strptime(text, "%B %d, %Y").strftime("%Y%m%d")
 
@@ -135,9 +147,16 @@ def list_calendar_releases(fetcher: Fetcher, *, since: int) -> list[Release]:
     releases: dict[tuple[str, str], Release] = {}
     for page in pages:
         released = {date: _ymd(text) for date, text in _RELEASED.findall(page)}
-        for date in _STATEMENT.findall(page):
+        for match in _STATEMENT.finditer(page):
+            date = match.group(1)
             path = f"/newsevents/pressreleases/monetary{date}a.htm"
-            releases[("statement", date)] = Release("statement", BASE_URL + path, date, date)
+            releases[("statement", date)] = Release(
+                "statement",
+                BASE_URL + path,
+                date,
+                date,
+                unscheduled=_unscheduled(page, match.start()),
+            )
         for date in _MINUTES.findall(page):
             path = f"/monetarypolicy/fomcminutes{date}.htm"
             releases[("minutes", date)] = Release(
@@ -295,6 +314,8 @@ def ingest_release(
         title = article.title
     if article.location:
         meta["location"] = article.location
+    if release.unscheduled:
+        meta["unscheduled"] = True
     published_at = release_date(release, markup)
     url_surname = _SPEECH.search(release.url)
     speaker_id = (

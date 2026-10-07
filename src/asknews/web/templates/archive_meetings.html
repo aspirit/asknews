@@ -23,7 +23,7 @@
         {% if m %}
         <details class="mcard" id="m-{{ m.key }}" {% if m.key == open_key %}open{% endif %}>
           <summary class="mh">
-            <span class="md">{{ t.institution(code, short=True) }} &middot; {{ t.date(m.statement.published_at, code) }}</span>
+            <span class="md">{{ t.institution(code, short=True) }} &middot; {{ t.date(m.statement.published_at, code) }}{% if m.unscheduled %} &middot; {{ t('meetings.unscheduled') }}{% endif %}</span>
             <span class="mt"><b>{{ briefs[m.key].title_in(lang) if m.key in briefs else m.statement.title_in(lang)[0] }}</b>{% if m.key in briefs %} {{ ai_tag('ai.title') }}{% endif %}</span>
             {% if m.decision %}<span class="mdec">{{ decision_badge(m.decision) }}</span>{% endif %}
             <span class="mx">+</span>

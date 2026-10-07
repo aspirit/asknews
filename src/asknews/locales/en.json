@@ -85,6 +85,7 @@
   "meetings.missing": "Not indexed",
   "meetings.none": "Not published for this meeting",
   "meetings.hold": "Hold",
+  "meetings.unscheduled": "Unscheduled meeting",
   "meetings.unanimous": "Unanimous",
   "meetings.dissent": "{n} dissenting: {names}",
   "meetings.extracted": "extracted",

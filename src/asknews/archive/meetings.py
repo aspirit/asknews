@@ -113,6 +113,7 @@ class Meeting:
     opinions: DocumentSummary | None = None
     outlook: DocumentSummary | None = None
     decision: Decision | None = None
+    unscheduled: bool = False
     parts: list[Part] = field(default_factory=list)
     documents: list[DocumentSummary] = field(default_factory=list)
 
@@ -224,9 +225,15 @@ def boj_decision(
     )
 
 
-def expected_on(institution: str, role: str, when: date) -> date | None:
+def expected_on(
+    institution: str, role: str, when: date, *, unscheduled: bool = False
+) -> date | None:
     """The day a document of ``role`` is due for a meeting held on ``when``,
-    or None when that meeting never produces one."""
+    or None when that meeting never produces one. An unscheduled meeting
+    publishes a statement only: its minutes are folded into the next
+    regular meeting's and it has no press conference or projections."""
+    if unscheduled:
+        return when if role == "statement" else None
     if institution == "fed":
         if role == "statement":
             return when
@@ -248,11 +255,17 @@ def expected_on(institution: str, role: str, when: date) -> date | None:
 
 
 def part_status(
-    institution: str, role: str, when: date, document: DocumentSummary | None, *, today: date
+    institution: str,
+    role: str,
+    when: date,
+    document: DocumentSummary | None,
+    *,
+    today: date,
+    unscheduled: bool = False,
 ) -> str:
     if document is not None:
         return "present"
-    due = expected_on(institution, role, when)
+    due = expected_on(institution, role, when, unscheduled=unscheduled)
     if due is None:
         return "none"
     return "scheduled" if due >= today else "missing"  # released during the due day
@@ -315,6 +328,7 @@ def list_meetings(conn: Connection, *, limit: int = 40, today: date | None = Non
         bodies[int(row["id"])] = row["body_head"]
         if kind == "statement":
             meeting.statement = meeting.statement or _placeholder(row)
+            meeting.unscheduled = bool(meta.get("unscheduled"))
         elif kind == "press_conference":
             meeting.press_conference = meeting.press_conference or _placeholder(row)
         elif kind == "minutes":
@@ -349,7 +363,12 @@ def list_meetings(conn: Connection, *, limit: int = 40, today: date | None = Non
                 role,
                 getattr(meeting, role),
                 part_status(
-                    meeting.institution, role, meeting.date, getattr(meeting, role), today=today
+                    meeting.institution,
+                    role,
+                    meeting.date,
+                    getattr(meeting, role),
+                    today=today,
+                    unscheduled=meeting.unscheduled,
                 ),
             )
             for role in ROLES[meeting.institution]

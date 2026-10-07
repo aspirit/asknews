@@ -113,6 +113,15 @@ def test_expected_documents_follow_each_publisher_schedule() -> None:
     assert expected_on("boj", "outlook", date(2026, 9, 18)) is None
 
 
+def test_unscheduled_meeting_expects_only_its_statement() -> None:
+    emergency = date(2020, 3, 15)
+    assert expected_on("fed", "statement", emergency, unscheduled=True) == emergency
+    assert expected_on("fed", "minutes", emergency, unscheduled=True) is None
+    assert expected_on("fed", "press_conference", emergency, unscheduled=True) is None
+    later = date(2026, 1, 1)
+    assert part_status("fed", "minutes", emergency, None, today=later, unscheduled=True) == "none"
+
+
 def test_part_status_distinguishes_scheduled_missing_and_none() -> None:
     today = date(2026, 10, 7)
     when = date(2026, 9, 16)

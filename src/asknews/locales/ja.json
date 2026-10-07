@@ -85,6 +85,7 @@
   "meetings.missing": "未収録",
   "meetings.none": "この会合では公表なし",
   "meetings.hold": "据え置き",
+  "meetings.unscheduled": "臨時会合",
   "meetings.unanimous": "全員一致",
   "meetings.dissent": "反対{n}名：{names}",
   "meetings.extracted": "抽出",

@@ -63,7 +63,10 @@ def test_calendar_releases_include_minutes_release_dates_and_projections(
         ("projections", "20260318"),
     ]
     assert found[0].released == "20251008"
-    assert found[2].released is None
+    assert (found[2].released, found[2].unscheduled) == (None, False)
+    since_2020 = releases.list_calendar_releases(fetcher, since=2020)
+    emergency = next(r for r in since_2020 if r.date == "20200315")
+    assert emergency.unscheduled is True
     assert found[3].url.endswith("/monetarypolicy/fomcprojtable20260318.htm")  # kept as linked
 
 
@@ -133,7 +136,7 @@ def test_ingest_statement_minutes_and_speech(db: Connection, fetcher: Fetcher) -
     )
     outcomes = {}
     for release in items:
-        if release.external_id in ("powell20251203a", "20260318"):
+        if release.external_id in ("powell20251203a", "20260318", "20200315"):
             continue  # no fixture page
         outcomes[release.kind] = releases.ingest_release(db, fetcher, release, directory=directory)
 
