@@ -21,8 +21,8 @@ SEGMENT_CHARS = 600
 _CJK = "　-ヿ㐀-鿿＀-￯"
 _SPACED_CJK = re.compile(f"(?<=[{_CJK}])[ 　]+(?=[{_CJK}])")
 _SENTENCE_END = re.compile("(?<=[。！？])")
-_JA_DATE = re.compile(r"(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日")
-_JA_MONTH_DAY = re.compile(r"(\d{1,2})月\s*(\d{1,2})日")
+_JA_DATE = re.compile(r"(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日")
+_JA_MONTH_DAY = re.compile(r"(\d{1,2})\s*月\s*(\d{1,2})\s*日")
 _DOTTED_DATE = re.compile(r"(\d{4})\.(\d{1,2})\.(\d{1,2})")
 _SIZE_SUFFIX = re.compile(r"\s*\[PDF[^\]]*\]\s*$")
 _NBSP = " "
@@ -114,3 +114,14 @@ def pack_ja(paragraphs: Sequence[str], *, max_chars: int = SEGMENT_CHARS) -> lis
         size += len(paragraph) + 1
     flush()
     return chunks
+
+
+def pdf_paragraphs(text: str) -> list[str]:
+    """Paragraphs of a Japanese PDF text layer: blank lines separate paragraphs
+    and line wraps inside a paragraph carry no meaning, so they are removed."""
+    out: list[str] = []
+    for block in re.split(r"\n\s*\n", normalise(text)):
+        joined = re.sub(r"[ \t]*\n[ \t]*", "", block).strip()
+        if joined:
+            out.append(joined)
+    return out
