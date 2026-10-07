@@ -1,0 +1,108 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from pathlib import Path
+
+import httpx
+import pytest
+
+from asknews.db.connection import Connection
+from asknews.db.migrate import migrate
+from asknews.ingest import feeds
+from asknews.ingest.http import Fetcher
+
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "feeds"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def fixture(name: str) -> str:
+    return (FIXTURES / name).read_text("utf-8")
+
+
+def test_rss2_entries_with_cdata_links_and_dates() -> None:
+    entries = feeds.parse_feed(fixture("rss2.xml"))
+    assert [e.link for e in entries] == [
+        "https://example.test/press/pr1.en.html",
+        "https://example.test/jgbs/auction/result1.htm",
+    ]
+    assert entries[0].published == datetime(2026, 10, 6, 14, 45, tzinfo=UTC)
+    assert entries[0].description == "Rates were held."
+    assert entries[1].published is not None
+    assert entries[1].published.utcoffset() is not None
+
+
+def test_rdf_entries_carry_creator() -> None:
+    entries = feeds.parse_feed(fixture("rdf.xml"))
+    assert entries[0].creator == "A. Example"
+    assert entries[0].published == datetime(2026, 10, 7, tzinfo=UTC)
+
+
+def test_atom_entries_expose_youtube_extensions() -> None:
+    entries = feeds.parse_feed(fixture("atom.xml"))
+    assert entries[0].link == "https://www.youtube.com/watch?v=abc123"
+    assert entries[0].extra["videoId"] == "abc123"
+
+
+def test_source_filters() -> None:
+    source = feeds.Source(
+        "x", "mof", "u", "ja", "release", "page", include=("/policy/",), exclude=("/auction/",)
+    )
+    assert source.accepts("https://example.test/policy/a.htm")
+    assert not source.accepts("https://example.test/policy/auction/a.htm")
+    assert not source.accepts("https://example.test/other/a.htm")
+
+
+def test_shipped_feed_configuration_loads() -> None:
+    sources = feeds.load_sources(REPO_ROOT / "domain" / "feeds.yaml")
+    codes = {s.code for s in sources}
+    assert {"ecb-press", "bis-speeches", "bea-news", "mof-news", "fsa-news", "boe-news"} <= codes
+    boe = next(s for s in sources if s.code == "boe-news")
+    assert boe.body == "none"
+
+
+PAGE = (
+    "<html><body><nav>menu</nav><main><h1>Monetary policy decision</h1>"
+    "<p>PRESS RELEASE</p><p>The Governing Council decided to keep the three key interest rates "
+    "unchanged. Inflation is expected to settle at target over the medium term, and the Council "
+    "will continue to follow a data-dependent approach to determining the appropriate stance.</p>"
+    "<p>Reproduction is permitted provided the source is acknowledged.</p></main></body></html>"
+)
+
+
+def handler(request: httpx.Request) -> httpx.Response:
+    if str(request.url) == "https://example.test/press/pr1.en.html":
+        return httpx.Response(200, text=PAGE, headers={"content-type": "text/html"})
+    return httpx.Response(404)
+
+
+@pytest.mark.integration
+def test_ingest_entry_from_page_and_title_only(db: Connection, tmp_path: Path) -> None:
+    migrate(db)
+    fetcher = Fetcher(tmp_path, transport=httpx.MockTransport(handler), min_interval=0)
+    entries = feeds.parse_feed(fixture("rss2.xml"))
+    ecb = feeds.Source(
+        "ecb-press",
+        "ecb",
+        "u",
+        "en",
+        "release",
+        "page",
+        main=("<main", "</main>"),
+        drop=("PRESS RELEASE", "Reproduction is permitted"),
+    )
+    outcome = feeds.ingest_entry(db, fetcher, ecb, entries[0])
+    row = db.execute(
+        "SELECT body, title FROM documents WHERE id = %s", (outcome.document_id,)
+    ).fetchone()
+    assert row is not None
+    assert row["body"].startswith("Monetary policy decision\n\nThe Governing Council")
+    assert "PRESS RELEASE" not in row["body"]
+    assert outcome.segments == 1
+
+    boe = feeds.Source("boe-news", "boe", "u", "en", "release", "none")
+    titled = feeds.ingest_entry(db, fetcher, boe, entries[1])
+    row = db.execute(
+        "SELECT body, meta FROM documents WHERE id = %s", (titled.document_id,)
+    ).fetchone()
+    assert row is not None
+    assert (row["body"], row["meta"]["text"], titled.segments) == (None, "title_only", 0)

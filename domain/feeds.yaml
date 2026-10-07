@@ -1,0 +1,52 @@
+# Feeds for publishers outside the core corpus. Each item becomes a document
+# of the given kind; `body` says where its text comes from:
+#   page         fetch the linked page and keep the text inside `main`
+#   description  use the feed's own description (no page fetch)
+#   none         title and link only (publisher terms do not allow excerpts)
+# `include`/`exclude` are regular expressions matched against the link.
+sources:
+  - code: ecb-press
+    institution: ecb
+    url: https://www.ecb.europa.eu/rss/press.html
+    lang: en
+    kind: release
+    body: page
+    main: ["<main", "</main>"]
+    drop: ["PRESS RELEASE", "Search Results", "CONTACT", "Reproduction is permitted"]
+  - code: bis-speeches
+    institution: bis
+    url: https://www.bis.org/doclist/cbspeeches.rss
+    lang: en
+    kind: speech
+    body: description
+  - code: bea-news
+    institution: bea
+    url: https://apps.bea.gov/rss/rss.xml
+    lang: en
+    kind: release
+    body: description
+  - code: mof-news
+    institution: mof
+    url: https://www.mof.go.jp/news.rss
+    lang: ja
+    kind: release
+    body: page
+    main: ["<main", "</main>"]
+    include: ["/public_relations/", "/policy/", "/international_policy/", "/budget/", "/tax_policy/"]
+    exclude: ["/jgbs/auction/", "/jgbs/topics/"]
+    drop: ["トップページ", "X ポスト", "ツイート"]
+  - code: fsa-news
+    institution: fsa
+    url: https://www.fsa.go.jp/fsaNewsListAll_rss2.xml
+    lang: ja
+    kind: release
+    body: page
+    main: ["<article", "</article>"]
+    include: ["/common/conference/", "/news/", "/policy/", "/inter/"]
+    drop: ["ホーム", "Tweet", "Note: This page is machine translated"]
+  - code: boe-news
+    institution: boe
+    url: https://www.bankofengland.co.uk/rss/news
+    lang: en
+    kind: release
+    body: none

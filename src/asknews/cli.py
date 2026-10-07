@@ -34,6 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     ingest = commands.add_parser("ingest", help="fetch publications into the archive")
     sources = ingest.add_subparsers(dest="source", required=True)
+    from asknews.ingest import feeds
     from asknews.ingest.boj import kaiken
     from asknews.ingest.boj import releases as boj_releases
     from asknews.ingest.fed import presconf, releases
@@ -42,6 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
     releases.add_cli(sources)
     kaiken.add_cli(sources)
     boj_releases.add_cli(sources)
+    feeds.add_cli(sources)
     return parser
 
 

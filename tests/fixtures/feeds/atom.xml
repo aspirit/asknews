@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+<title>Channel</title>
+<entry><id>yt:video:abc123</id><yt:videoId>abc123</yt:videoId><yt:channelId>UCx</yt:channelId>
+<title>Press conference (18 Sep 2026)</title><link rel="alternate" href="https://www.youtube.com/watch?v=abc123"/>
+<author><name>Channel</name></author><published>2026-09-24T05:53:24+00:00</published></entry>
+</feed>

@@ -81,8 +81,8 @@ def test_schema_has_core_tables_and_seed_rows(db: Connection) -> None:
         )
     }
     assert {"institutions", "documents", "media", "segments", "segment_embeddings"} <= tables
-    codes = [row["code"] for row in db.execute("SELECT code FROM institutions ORDER BY code")]
-    assert codes == ["boj", "fed"]
+    codes = {row["code"] for row in db.execute("SELECT code FROM institutions")}
+    assert {"fed", "boj"} <= codes
 
 
 @pytest.mark.integration
