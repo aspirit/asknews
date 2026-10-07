@@ -99,8 +99,8 @@ def _ja_date(year: int, month: int, day: int) -> str:
     return f"{year}{_NEN}{month}{_GATSU}{day}{_NICHI}"
 
 
-def _person(directory: SpeakerDirectory, text: str) -> str | None:
-    spec = directory.find("boj", text)
+def _person(directory: SpeakerDirectory, text: str, when: date) -> str | None:
+    spec = directory.find("boj", text, when=when)
     return spec.name.split()[-1] if spec else None
 
 
@@ -110,13 +110,13 @@ def english_title(title: str, published: date, directory: SpeakerDirectory) -> s
     when = _en_date(*(int(g) for g in full.groups())) if full else None
     if _KISHA_KAIKEN in title and when:
         if _DAIRI in title:
-            person = _person(directory, title.split(_OPEN, 1)[-1])
+            person = _person(directory, title.split(_OPEN, 1)[-1], published)
             who = f"Deputy Governor {person}" if person else "a Deputy Governor"
             return f"Press conference by {who}, for the Governor ({when})"
         if title.startswith(_SOUSAI):
             regular = _TEIREI in title
             return f"Governor's {'regular ' if regular else ''}press conference ({when})"
-        person = _person(directory, title)
+        person = _person(directory, title, published)
         if _FUKU_SOUSAI in title:
             role = "Deputy Governor"
         elif _SHINGI_IIN in title:

@@ -212,6 +212,7 @@ def boj_decision(
     *,
     previous_rate: float | None = None,
     directory: SpeakerDirectory | None = None,
+    when: date | None = None,
 ) -> Decision | None:
     """The short-term policy rate as the statement sets it; the change is
     measured against the previous meeting's rate when that is known."""
@@ -245,7 +246,10 @@ def boj_decision(
     head = statement_body[:600]
     direction = "raise" if _AGE in head else "lower" if _SAGE in head else None
     english = (
-        tuple(spec.name if (spec := directory.find("boj", name)) else name for name in dissenters)
+        tuple(
+            spec.name if (spec := directory.find("boj", name, when=when)) else name
+            for name in dissenters
+        )
         if directory
         else ()
     )
@@ -392,7 +396,10 @@ def list_meetings(conn: Connection, *, limit: int = 40, today: date | None = Non
             meeting.decision = fed_decision(body, previous_low=previous_rate.get("fed"))
         else:
             meeting.decision = boj_decision(
-                body, previous_rate=previous_rate.get("boj"), directory=directory
+                body,
+                previous_rate=previous_rate.get("boj"),
+                directory=directory,
+                when=meeting.date,
             )
         if meeting.decision is not None:
             previous_rate[meeting.institution] = meeting.decision.low

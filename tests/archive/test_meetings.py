@@ -81,9 +81,15 @@ def test_boj_decision_rate_change_and_vote() -> None:
         "（賛成7反対2）（注）。無担保コールレート（オーバーナイト物）を、1.25%程度で推移するよう"
         "促す。（注）賛成：植田委員、氷見野委員。反対：浅田委員、佐藤委員。"
     )
-    decision = boj_decision(body, previous_rate=1.0)
+    from pathlib import Path
+
+    from asknews.domain_config import load_speakers
+
+    directory = load_speakers(Path(__file__).resolve().parents[2] / "domain" / "speakers.yaml")
+    decision = boj_decision(body, previous_rate=1.0, directory=directory, when=date(2026, 9, 18))
     assert decision is not None
     assert (decision.text, decision.low, decision.change_bp) == ("1.25%", 1.25, 25)
+    assert decision.dissenters_in("en") == ("Asada", "Sato")  # not the 2012-2017 namesake
     assert decision.range_text == "1.25%"
     assert (decision.votes, decision.unanimous) == ("7-2", False)
     assert decision.dissenters == ("浅田", "佐藤")
