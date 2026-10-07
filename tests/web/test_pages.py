@@ -74,6 +74,19 @@ def test_document_pages(api: Api) -> None:
     assert "404" in missing.text
 
 
+def test_robots_and_sitemap(api: Api) -> None:
+    client, ids, _ = api
+    robots = client.get("/robots.txt")
+    assert robots.status_code == 200
+    assert "Sitemap: https://asknews.jp/sitemap.xml" in robots.text
+    sitemap = client.get("/sitemap.xml")
+    assert sitemap.headers["content-type"].startswith("application/xml")
+    assert f"<loc>https://asknews.jp/doc/{ids['presser']}</loc>" in sitemap.text
+    assert f"<loc>https://asknews.jp/ja/doc/{ids['presser']}</loc>" in sitemap.text
+    assert 'hreflang="ja" href="https://asknews.jp/ja/archive/meetings"' in sitemap.text
+    assert "<loc>https://asknews.jp/ja</loc>" in sitemap.text
+
+
 def test_ask_and_about_pages(api: Api) -> None:
     client, _, _ = api
     ask = client.get("/ask", params={"q": "What did the Fed decide?"})

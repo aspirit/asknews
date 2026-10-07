@@ -13,6 +13,7 @@ it.
   (`/archive`), Japanese ones under `/ja` (`/ja/archive`), so every language
   version has its own URL; each page links its counterpart and declares
   `hreflang` alternates. The switch in the header changes the path.
+  `/sitemap.xml` lists every page in both languages; `/robots.txt` points at it.
 - **Document language is independent of interface language.** Federal
   Reserve material is English; Bank of Japan material is Japanese. Every list
   item carries an original-language badge, and a document is always shown in

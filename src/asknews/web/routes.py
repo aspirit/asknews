@@ -10,7 +10,7 @@ from typing import Annotated, Any, TypeVar
 
 import yaml
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from asknews.api.deps import connection
@@ -307,6 +307,65 @@ def brief_page(request: Request, conn: Conn, brief_id: int) -> HTMLResponse:
         if brief.meeting_key
         else None,
     )
+
+
+ROBOTS = "User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {site}/sitemap.xml\n"
+_XML_ESCAPES = str.maketrans({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"})
+
+
+@router.get("/robots.txt", response_class=PlainTextResponse)
+def robots() -> str:
+    return ROBOTS.format(site=get_settings().site_url)
+
+
+def sitemap_entries(conn: Connection) -> list[tuple[str, str | None]]:
+    """``(path, lastmod)`` for every page worth indexing, in the default language."""
+    entries: list[tuple[str, str | None]] = [
+        (p, None)
+        for p in (
+            "/",
+            "/ask",
+            "/archive",
+            "/archive/latest",
+            "/archive/briefs",
+            "/archive/videos",
+            "/archive/rankings",
+            "/archive/meetings",
+            "/about",
+        )
+    ]
+    documents_rows = conn.execute("SELECT id, updated_at FROM documents ORDER BY id").fetchall()
+    entries.extend(
+        (f"/doc/{row['id']}", row["updated_at"].date().isoformat()) for row in documents_rows
+    )
+    brief_rows = conn.execute("SELECT id, generated_at FROM briefs ORDER BY id").fetchall()
+    entries.extend(
+        (f"/brief/{row['id']}", row["generated_at"].date().isoformat()) for row in brief_rows
+    )
+    return entries
+
+
+@router.get("/sitemap.xml")
+def sitemap(conn: Conn) -> Response:
+    """Every page in every language, each naming its alternates."""
+    site = get_settings().site_url
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+        'xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+    ]
+    for path, lastmod in sitemap_entries(conn):
+        alternates = "".join(
+            f'<xhtml:link rel="alternate" hreflang="{code}" '
+            f'href="{(site + localized_path(path, code)).translate(_XML_ESCAPES)}"/>'
+            for code in LANGUAGES
+        )
+        for code in LANGUAGES:
+            loc = (site + localized_path(path, code)).translate(_XML_ESCAPES)
+            modified = f"<lastmod>{lastmod}</lastmod>" if lastmod else ""
+            lines.append(f"<url><loc>{loc}</loc>{modified}{alternates}</url>")
+    lines.append("</urlset>")
+    return Response("\n".join(lines) + "\n", media_type="application/xml")
 
 
 @page("/about")
