@@ -11,6 +11,11 @@ RRF_K = 60
 MAX_CITATIONS = 12
 MAX_PER_DOCUMENT = 2
 SNIPPET_CHARS = 420
+# The speaker label the Bank of Japan transcript ingester gives reporters'
+# questions. A question is retrieved for the words it shares with the user's;
+# what the user wants is the answer that follows it.
+QUESTION_SPEAKER = "Question"
+_QUESTION_PENALTY = 0.01
 
 _PATH_WEIGHT = {"phrase": 2.0, "fulltext": 1.0, "terms": 1.0, "semantic": 1.0}
 _KIND_WEIGHT = {
@@ -42,6 +47,8 @@ def fused_score(candidate: Candidate, passage: Passage, query: Query) -> float:
         _PATH_WEIGHT.get(path, 1.0) / (RRF_K + rank) for path, rank in candidate.ranks.items()
     )
     score += _KIND_WEIGHT.get(passage.kind, 0.0)
+    if passage.speaker == QUESTION_SPEAKER:
+        score -= _QUESTION_PENALTY
     if passage.institution in query.institutions:
         score += 0.02
     if passage.speaker_slug and passage.speaker_slug in query.speakers:
@@ -75,6 +82,24 @@ def fuse(candidates: list[Candidate], passages: dict[int, Passage], query: Query
         if len(out) == MAX_CITATIONS:
             break
     return out
+
+
+def with_answers(citations: list[Citation], answers: dict[int, Passage]) -> list[Citation]:
+    """Place each retrieved question's answer right after it.
+
+    ``answers`` maps a question segment's id to the passage that follows it.
+    An answer already in the list is not added twice; the list is cut back to
+    ``MAX_CITATIONS`` from the bottom.
+    """
+    present = {c.passage.segment_id for c in citations}
+    out: list[Citation] = []
+    for citation in citations:
+        out.append(citation)
+        answer = answers.get(citation.passage.segment_id)
+        if answer is not None and answer.segment_id not in present:
+            out.append(Citation(answer, citation.score - 1e-6, ("answer",)))
+            present.add(answer.segment_id)
+    return out[:MAX_CITATIONS]
 
 
 def merge_candidates(*groups: list[Candidate]) -> list[Candidate]:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import fields
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -18,6 +19,8 @@ from asknews.ingest.store import (
     upsert_speaker,
 )
 from asknews.retrieval import retrieve
+from asknews.retrieval.candidates import Passage
+from asknews.retrieval.fusion import Citation, with_answers
 from asknews.retrieval.gate import load_vocabulary, mentions_domain
 from asknews.retrieval.query import analyse
 
@@ -104,6 +107,75 @@ def seed(db: Connection) -> None:
 
 
 @pytest.mark.integration
+def test_a_retrieved_question_brings_its_answer(db: Connection) -> None:
+    migrate(db)
+    ueda = upsert_speaker(db, institution="boj", slug="ueda", name="Kazuo Ueda", role="Governor")
+    doc = upsert_document(
+        db,
+        Document(
+            "boj",
+            "press_conference",
+            "ja",
+            "kk240321a",
+            "総裁定例記者会見（2024年3月19日）",
+            datetime(2024, 3, 19, 6, 30, tzinfo=UTC),
+            "https://boj.test/kk240321a.pdf",
+            speaker_id=ueda,
+        ),
+    )
+    replace_segments(
+        db,
+        doc,
+        [
+            Segment(0, "マイナス金利解除の理由を教えてください。", speaker="Question"),
+            Segment(
+                1,
+                "物価安定の目標の持続的な実現が見通せる状況に至ったためです。",
+                speaker="Kazuo Ueda",
+            ),
+            Segment(2, "次の質問です。為替について伺います。", speaker="Question"),
+        ],
+    )
+    embed_pending(db, HashEmbedder())
+    found = retrieve(
+        db, HashEmbedder(), "マイナス金利解除の理由は", directory=DIRECTORY, vocab=VOCAB
+    )
+    positions = [c.passage.position for c in found.citations]
+    assert positions[:2] == [0, 1]  # the question, then the governor's answer
+    assert found.citations[1].passage.speaker == "Kazuo Ueda"
+
+
+def _passage(segment_id: int, position: int, speaker: str) -> Passage:
+    values: dict[str, object] = {
+        "segment_id": segment_id,
+        "document_id": 1,
+        "position": position,
+        "institution": "boj",
+        "institution_name": "Bank of Japan",
+        "kind": "press_conference",
+        "lang": "ja",
+        "title": "t",
+        "published_at": datetime(2024, 3, 19, tzinfo=UTC),
+        "source_url": "u",
+        "text": "x",
+        "speaker": speaker,
+    }
+    return Passage(**{f.name: values.get(f.name) for f in fields(Passage)})  # type: ignore[arg-type]
+
+
+def test_with_answers_inserts_the_following_answer_once() -> None:
+    question, answer, other = (
+        _passage(1, 0, "Question"),
+        _passage(2, 1, "Ueda"),
+        _passage(3, 5, "Ueda"),
+    )
+    cited = [Citation(question, 0.5, ("terms",)), Citation(other, 0.4, ("semantic",))]
+    out = with_answers(cited, {1: answer})
+    assert [c.passage.segment_id for c in out] == [1, 2, 3]
+    assert out[1].paths == ("answer",)
+    assert with_answers(out, {1: answer}) == out  # an answer already present is not added again
+
+
 def test_english_fulltext_and_speaker_boost(db: Connection) -> None:
     seed(db)
     result = retrieve(

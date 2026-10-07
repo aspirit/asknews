@@ -177,6 +177,22 @@ class Passage:
     media_id: str | None
 
 
+def following_segment_ids(conn: Connection, segment_ids: list[int]) -> dict[int, int]:
+    """For each segment, the id of the next segment of its document, when there is one."""
+    if not segment_ids:
+        return {}
+    rows = conn.execute(
+        """
+        SELECT s.id, n.id AS next_id
+          FROM segments s
+          JOIN segments n ON n.document_id = s.document_id AND n.position = s.position + 1
+         WHERE s.id = ANY(%s)
+        """,
+        (segment_ids,),
+    ).fetchall()
+    return {int(r["id"]): int(r["next_id"]) for r in rows}
+
+
 def hydrate(conn: Connection, segment_ids: list[int]) -> dict[int, Passage]:
     if not segment_ids:
         return {}

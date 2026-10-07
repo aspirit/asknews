@@ -9,7 +9,13 @@ from asknews.db.connection import Connection
 from asknews.domain_config import SpeakerDirectory
 from asknews.embed.base import Embedder
 from asknews.retrieval import candidates as paths
-from asknews.retrieval.fusion import Citation, fuse, merge_candidates
+from asknews.retrieval.fusion import (
+    QUESTION_SPEAKER,
+    Citation,
+    fuse,
+    merge_candidates,
+    with_answers,
+)
 from asknews.retrieval.gate import Vocabulary, mentions_domain
 from asknews.retrieval.query import Query, analyse
 
@@ -42,6 +48,13 @@ def retrieve(
     merged = merge_candidates(lexical, semantic)
     passages = paths.hydrate(conn, [c.segment_id for c in merged])
     citations = fuse(merged, passages, query)
+    questions = [c.passage.segment_id for c in citations if c.passage.speaker == QUESTION_SPEAKER]
+    if questions:
+        following = paths.following_segment_ids(conn, questions)
+        answers = paths.hydrate(conn, list(following.values()))
+        citations = with_answers(
+            citations, {q: answers[n] for q, n in following.items() if n in answers}
+        )
 
     strongest_terms = max((c.scores.get("terms", 0.0) for c in lexical), default=0.0)
     phrase_hits = any("phrase" in c.ranks for c in lexical)
