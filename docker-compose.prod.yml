@@ -1,0 +1,60 @@
+# Production stack on one host behind nginx. Start with
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Secrets come from .env (see .env.example); nothing is baked into images.
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: asknews
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: asknews
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asknews -d asknews"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    shm_size: 256m
+
+  embed:
+    build:
+      context: .
+      dockerfile: Dockerfile.embed
+    restart: unless-stopped
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+    volumes:
+      - hfcache:/home/app/.cache/huggingface
+    deploy:
+      resources:
+        limits:
+          memory: 3g
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://asknews:${POSTGRES_PASSWORD}@db:5432/asknews
+      ASKNEWS_EMBEDDER: ${ASKNEWS_EMBEDDER:-remote}
+      ASKNEWS_EMBED_URL: http://embed:8201
+      ASKNEWS_LLM: ${ASKNEWS_LLM:-claude}
+      ASKNEWS_LLM_MODEL: ${ASKNEWS_LLM_MODEL:-claude-opus-5-5}
+      ASKNEWS_SUMMARY_MODEL: ${ASKNEWS_SUMMARY_MODEL:-claude-sonnet-5-5}
+      ASKNEWS_DAILY_BUDGET_USD: ${ASKNEWS_DAILY_BUDGET_USD:-3}
+      ASKNEWS_CLIENT_SALT: ${ASKNEWS_CLIENT_SALT:?set ASKNEWS_CLIENT_SALT in .env}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+    volumes:
+      - appdata:/app/data
+    ports:
+      - "127.0.0.1:8000:8000"
+
+volumes:
+  pgdata:
+  hfcache:
+  appdata:

@@ -3,7 +3,7 @@
 # fragment), and the rank by which it should appear.
 cases:
   - question: What did the FOMC decide at its September 2026 meeting?
-    expect: {institution: fed, kind: statement, external_id: "20260916"}
+    expect: {institution: fed, external_id: "20260916"}  # the statement or the press conference
     within: 5
   - question: How did the Fed describe the outlook at the September 2025 press conference?
     expect: {institution: fed, kind: press_conference, external_id: "20250917"}

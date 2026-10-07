@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the asknews daily job every morning
+
+[Timer]
+OnCalendar=*-*-* 22:30:00
+RandomizedDelaySec=600
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,9 @@
+[Unit]
+Description=asknews daily job (ingest, embed, briefs, summaries)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/asknews
+ExecStart=/usr/bin/docker compose -f docker-compose.prod.yml run --rm app asknews daily
