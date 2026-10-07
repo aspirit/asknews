@@ -20,6 +20,7 @@ def test_normalise_folds_fullwidth_digits_and_letter_spacing() -> None:
     assert normalise("rate 1.25% stays") == "rate 1.25% stays"
     assert normalise("１．２５％") == "1.25%"
     assert normalise("（問）") == "（問）"  # Japanese punctuation is left alone
+    assert normalise("202 6 年 7 月 3 1 日") == "2026年7月31日"
 
 
 def test_dates() -> None:

@@ -37,6 +37,8 @@ _FOLD = {
 _FOLD[0x3000] = " "
 _FOLD[0x00A0] = " "
 _DOTTED_NUMBER = re.compile(r"(?<=\d)[．，](?=\d)")
+# PDF layouts also scatter single spaces inside numbers and dates ("202 6 年 7 月").
+_SPACED_NUMBER = re.compile(r"(?<=\d) (?=\d)|(?<=\d) (?=[年月日%])|(?<=[年月]) (?=\d)")
 
 
 def normalise(text: str) -> str:
@@ -45,6 +47,7 @@ def normalise(text: str) -> str:
     insert between Japanese characters."""
     text = text.translate(_FOLD)
     text = _DOTTED_NUMBER.sub(lambda m: "." if m.group(0) == "．" else ",", text)
+    text = _SPACED_NUMBER.sub("", text)
     return _SPACED_CJK.sub("", text)
 
 
