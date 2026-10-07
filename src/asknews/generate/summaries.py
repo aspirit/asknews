@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from asknews.answer.llm import LLM, Completion
+from asknews.budget import generation_allowed, record_usage
 from asknews.db.connection import Connection, connect
 from asknews.generate.common import LANGUAGE_NAMES, clip, other_language, parse_json_object
 from asknews.settings import get_settings
@@ -27,6 +28,13 @@ argues. Use only the document's own content; keep numbers and dates exact; no ev
 - title_translation: the document's title rendered in {other}.
 - summary_translation: the summary rendered in {other}.
 Return nothing but the JSON object."""
+
+
+@dataclass(frozen=True, slots=True)
+class Run:
+    done: int
+    cost: float  # estimated, in USD
+    budget_reached: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,19 +115,30 @@ def store(conn: Connection, generated: Generated) -> None:
 
 
 def summarize_pending(
-    conn: Connection, llm: LLM, *, kinds: tuple[str, ...] = DEFAULT_KINDS, limit: int = 50
-) -> tuple[int, float]:
-    """Summarize up to ``limit`` documents. Returns ``(count, estimated cost)``."""
+    conn: Connection,
+    llm: LLM,
+    *,
+    kinds: tuple[str, ...] = DEFAULT_KINDS,
+    limit: int = 50,
+    budget: float | None = None,
+) -> Run:
+    """Summarize up to ``limit`` documents, newest first, while the daily
+    budget's generation share lasts."""
     done = 0
     cost = 0.0
     for doc in pending_documents(conn, kinds=kinds, limit=limit):
+        if not generation_allowed(conn, budget):
+            return Run(done, cost, budget_reached=True)
         generated = summarize_document(llm, doc)
         if generated is None:
             continue
+        record_usage(
+            conn, purpose="summary", completion=generated.completion, reference=str(doc["id"])
+        )
         store(conn, generated)
         done += 1
         cost += generated.completion.cost_usd
-    return done, cost
+    return Run(done, cost)
 
 
 def llm_from_settings() -> LLM:
@@ -135,10 +154,17 @@ def llm_from_settings() -> LLM:
 
 def run(args: argparse.Namespace) -> int:
     with connect(autocommit=True) as conn:
-        done, cost = summarize_pending(
-            conn, llm_from_settings(), kinds=tuple(args.kinds), limit=args.limit
+        result = summarize_pending(
+            conn,
+            llm_from_settings(),
+            kinds=tuple(args.kinds),
+            limit=args.limit,
+            budget=get_settings().daily_budget_usd,
         )
-    sys.stdout.write(f"{done} documents summarized, estimated cost ${cost:.3f}\n")
+    note = "; stopped at the daily budget's generation share" if result.budget_reached else ""
+    sys.stdout.write(
+        f"{result.done} documents summarized, estimated cost ${result.cost:.3f}{note}\n"
+    )
     return 0
 
 

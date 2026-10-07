@@ -28,11 +28,13 @@ docker compose -f docker-compose.prod.yml up -d app
 ```
 
 Required variables in `.env`: `POSTGRES_PASSWORD`, `ASKNEWS_CLIENT_SALT`,
-`ANTHROPIC_API_KEY`. `HF_TOKEN` is needed once, for the embedding service's
-first start: the model weights are gated on Hugging Face and the token must
-belong to an account that accepted the model's terms. After the first
-download the weights live in the `hfcache` volume and the token can be
-removed.
+`ANTHROPIC_API_KEY`. The embedding service runs `ASKNEWS_EMBED_MODEL`:
+EmbeddingGemma (the default) is gated on Hugging Face, so its first start
+needs `HF_TOKEN` from an account that accepted the model's terms;
+`intfloat/multilingual-e5-base` has open weights and needs no token. After
+the first download the weights live in the `hfcache` volume. Changing the
+model means re-embedding: `asknews embed` replaces vectors whose model name
+differs, and retrieval only compares vectors of the model in use.
 
 ## Loading the archive
 
@@ -87,5 +89,5 @@ meetings, and summarises up to forty documents. Its log is in
 - **Logs:** `docker compose -f docker-compose.prod.yml logs -f app`.
 - **Backup:** `docker compose -f docker-compose.prod.yml exec db pg_dump -U asknews asknews | gzip > asknews-$(date +%F).sql.gz`.
 - **Upgrade:** `git pull && docker compose -f docker-compose.prod.yml up -d --build && ... run --rm app asknews migrate`.
-- **Spend:** `ask_requests` records tokens and the estimated cost of every answer; the daily budget (`ASKNEWS_DAILY_BUDGET_USD`) stops new answers when reached, and the site says so instead of failing.
+- **Spend:** `ask_requests` and `llm_usage` record tokens and the estimated cost of every model call; the daily cap (`ASKNEWS_DAILY_BUDGET_USD`, any 24 hours) stops generation at half of it and new answers at all of it, and the site says so instead of failing.
 - **Model unavailable:** without a valid `ANTHROPIC_API_KEY` the Ask page still retrieves and shows sources, and reports that the answer engine did not respond.

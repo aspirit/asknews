@@ -18,6 +18,7 @@ from typing import Any
 from asknews.answer.faithfulness import CheckedAnswer, check
 from asknews.answer.llm import LLM
 from asknews.answer.prompt import system_prompt, user_message
+from asknews.budget import spent_last_day
 from asknews.db.connection import Connection
 from asknews.domain_config import SpeakerDirectory
 from asknews.embed.base import Embedder
@@ -54,11 +55,8 @@ class AskResult:
 
 
 def spent_today(conn: Connection) -> float:
-    row = conn.execute(
-        "SELECT coalesce(sum(cost_usd), 0) AS spent FROM ask_requests WHERE asked_at >= %s",
-        (datetime.now(UTC) - timedelta(days=1),),
-    ).fetchone()
-    return float(row["spent"]) if row else 0.0
+    """What answers and generation together have cost over the last day."""
+    return spent_last_day(conn)
 
 
 def client_requests(conn: Connection, client_hash: str, *, since: timedelta) -> int:

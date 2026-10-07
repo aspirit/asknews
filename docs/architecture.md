@@ -16,7 +16,7 @@ publishers --ingest--> documents / segments --embed--> segment_embeddings
 | --- | --- |
 | `asknews.ingest` | One module per source. Shared: a cached HTTP fetcher, an HTML paragraph extractor, PDF text extraction, caption parsing, and store helpers that upsert documents and replace segments only when content changed. |
 | `asknews.db` | Connection helper and forward-only SQL migrations with checksums. |
-| `asknews.embed` | The `Embedder` protocol; a hashing stand-in for tests and development; a remote client for the embedding service; EmbeddingGemma behind the `model` extra; the worker that embeds pending segments. |
+| `asknews.embed` | The `Embedder` protocol; a hashing stand-in for tests and development; a remote client for the embedding service; EmbeddingGemma or multilingual-e5 behind the `model` extra; the worker that embeds pending segments. |
 | `asknews.retrieval` | Query analysis, lexical and dense candidate paths, reciprocal-rank fusion with boosts, and the domain gate. |
 | `asknews.answer` | Prompting, the Claude client, reply checking, request logging and the guards (budget, rate). |
 | `asknews.archive` | Read-side queries: lists, detail, meetings assembled from documents, rankings, briefs. |
@@ -64,9 +64,12 @@ The model receives only the question and the numbered passages, with the
 instruction to cite each factual sentence as `[n]` and to reply as JSON.
 The reply is checked: citations pointing at no passage are removed,
 paragraphs left without a citation are dropped, and the sources actually
-used are renumbered in order of first use. Before any of that, a daily
-spend budget and per-client hourly and daily limits are applied; after it,
-the request is logged with tokens, estimated cost and latency.
+used are renumbered in order of first use. Before any of that, the daily
+spend cap and per-client hourly and daily limits are applied; after it,
+the request is logged with tokens, estimated cost and latency. The cap is a
+rolling 24 hours over answers and generation together (`ask_requests` plus
+`llm_usage`); summaries and briefs stop at half of it so that questions can
+still be answered after the daily job has run.
 
 ## Generated content
 

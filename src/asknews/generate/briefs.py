@@ -12,9 +12,11 @@ from typing import Any
 
 from asknews.answer.llm import LLM, Completion
 from asknews.archive.meetings import Meeting, list_meetings
+from asknews.budget import generation_allowed, record_usage
 from asknews.db.connection import Connection, connect
 from asknews.generate.common import clip, parse_json_object
 from asknews.generate.summaries import llm_from_settings
+from asknews.settings import get_settings
 
 LOG = logging.getLogger(__name__)
 
@@ -43,12 +45,13 @@ def _document_block(index: int, row: dict[str, Any]) -> str:
 
 
 def _generate(
-    llm: LLM, heading: str, rows: list[dict[str, Any]]
+    conn: Connection, llm: LLM, heading: str, rows: list[dict[str, Any]], *, reference: str
 ) -> tuple[dict[str, Any], Completion] | None:
     user = (
         heading + "\n\n" + "\n\n".join(_document_block(i, r) for i, r in enumerate(rows, start=1))
     )
     completion = llm.complete(system=SYSTEM, user=user, max_tokens=2500)
+    record_usage(conn, purpose="brief", completion=completion, reference=reference)
     data = parse_json_object(completion.text)
     points = data.get("points")
     title = data.get("title")
@@ -133,7 +136,9 @@ def daily_brief(conn: Connection, llm: LLM, day: date) -> int | None:
     rows = documents_on(conn, day)
     if not rows:
         return None
-    generated = _generate(llm, f"Daily brief for {day:%Y-%m-%d}.", rows)
+    generated = _generate(
+        conn, llm, f"Daily brief for {day:%Y-%m-%d}.", rows, reference=f"daily:{day:%Y%m%d}"
+    )
     if generated is None:
         return None
     data, completion = generated
@@ -171,7 +176,7 @@ def meeting_brief(conn: Connection, llm: LLM, meeting: Meeting) -> int | None:
     heading = (
         f"Brief for the {meeting.institution.upper()} policy meeting of {meeting.date:%Y-%m-%d}."
     )
-    generated = _generate(llm, heading, rows)
+    generated = _generate(conn, llm, heading, rows, reference=meeting.key)
     if generated is None:
         return None
     data, completion = generated
@@ -194,8 +199,12 @@ def meetings_without_brief(conn: Connection, *, limit: int) -> list[Meeting]:
     return [m for m in list_meetings(conn, limit=400) if m.key not in existing][:limit]
 
 
+BUDGET_NOTE = "stopped at the daily budget's generation share\n"
+
+
 def run_daily(args: argparse.Namespace) -> int:
     llm = llm_from_settings()
+    budget = get_settings().daily_budget_usd
     today = datetime.now(UTC).date()
     days = (
         [date.fromisoformat(args.date)]
@@ -209,6 +218,9 @@ def run_daily(args: argparse.Namespace) -> int:
             ).fetchone()
             if exists and not args.refresh:
                 continue
+            if not generation_allowed(conn, budget):
+                sys.stdout.write(BUDGET_NOTE)
+                break
             brief_id = daily_brief(conn, llm, day)
             sys.stdout.write(f"{day}: {'brief ' + str(brief_id) if brief_id else 'no documents'}\n")
     return 0
@@ -216,8 +228,12 @@ def run_daily(args: argparse.Namespace) -> int:
 
 def run_meetings(args: argparse.Namespace) -> int:
     llm = llm_from_settings()
+    budget = get_settings().daily_budget_usd
     with connect(autocommit=True) as conn:
         for meeting in meetings_without_brief(conn, limit=args.limit):
+            if not generation_allowed(conn, budget):
+                sys.stdout.write(BUDGET_NOTE)
+                break
             brief_id = meeting_brief(conn, llm, meeting)
             sys.stdout.write(
                 f"{meeting.key}: {'brief ' + str(brief_id) if brief_id else 'skipped'}\n"
