@@ -10,10 +10,10 @@ def test_database_url_is_read_from_environment(monkeypatch: pytest.MonkeyPatch) 
     assert settings.database_dsn == "postgresql://user:secret@db.example:5432/asknews"
 
 
-def test_database_url_is_required(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_database_url_defaults_to_the_development_instance(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
-    with pytest.raises(ValidationError):
-        Settings(_env_file=None)  # type: ignore[call-arg]
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.database_dsn == "postgresql://asknews:asknews@localhost:5432/asknews"
 
 
 def test_database_url_must_be_postgres(monkeypatch: pytest.MonkeyPatch) -> None:

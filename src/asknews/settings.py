@@ -18,8 +18,12 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     database_url: PostgresDsn = Field(
+        default=PostgresDsn("postgresql://asknews:asknews@localhost:5432/asknews"),
         validation_alias="DATABASE_URL",
-        description="PostgreSQL connection URL; the database must have the pgvector extension.",
+        description=(
+            "PostgreSQL connection URL with the pgvector extension; the default is the "
+            "development instance from docker-compose.yml, production sets its own."
+        ),
     )
 
     domain_dir: Path = Field(
@@ -92,4 +96,4 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Return the process-wide settings, reading the environment on first use."""
-    return Settings()  # type: ignore[call-arg]  # fields come from the environment
+    return Settings()

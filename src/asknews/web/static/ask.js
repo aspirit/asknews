@@ -144,7 +144,7 @@
       });
       box.appendChild(el("div", { class: "fu", style: "margin-top:4px" }, [el("div", { class: "sec-h" }, [el("h3", { text: S.examples })]), list]));
       container.appendChild(box);
-      renderRail([]);
+      renderRail(data.citations || []);  // a model failure still has its sources
       return;
     }
     container.appendChild(el("div", { class: "meta" }, [

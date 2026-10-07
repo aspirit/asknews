@@ -76,7 +76,9 @@ def connection(request: Request) -> Iterator[Connection]:
 
 def client_hash(request: Request, salt: str) -> str:
     """A per-day hash of the client address: enough for rate limiting, no identity kept."""
+    # nginx appends the connecting address to whatever the client sent, so the
+    # last entry is the one it saw; the first could be anything.
     forwarded = request.headers.get("x-forwarded-for", "")
-    address = forwarded.split(",")[0].strip() or (request.client.host if request.client else "")
+    address = forwarded.split(",")[-1].strip() or (request.client.host if request.client else "")
     day = datetime.now(UTC).strftime("%Y-%m-%d")
     return hashlib.sha256(f"{salt}:{day}:{address}".encode()).hexdigest()[:32]
