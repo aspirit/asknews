@@ -25,6 +25,8 @@ services:
     restart: unless-stopped
     environment:
       HF_TOKEN: ${HF_TOKEN:-}
+      ASKNEWS_EMBED_MODEL: ${ASKNEWS_EMBED_MODEL:-google/embeddinggemma-300m}
+      DATABASE_URL: postgresql://asknews:${POSTGRES_PASSWORD}@db:5432/asknews
     volumes:
       - hfcache:/home/app/.cache/huggingface
     deploy:

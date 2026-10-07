@@ -15,7 +15,7 @@ def embedder_from_settings() -> Embedder:
 
         return RemoteEmbedder(settings.embed_url)
     if settings.embedder == "local":
-        from asknews.embed.gemma import GemmaEmbedder
+        from asknews.embed.local import LocalEmbedder
 
-        return GemmaEmbedder()
+        return LocalEmbedder(settings.embed_model)
     raise ValueError(f"unknown embedder: {settings.embedder}")

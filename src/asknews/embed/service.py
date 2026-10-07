@@ -31,9 +31,10 @@ class EmbedResponse(BaseModel):
 
 @lru_cache(maxsize=1)
 def embedder() -> Embedder:
-    from asknews.embed.gemma import GemmaEmbedder
+    from asknews.embed.local import LocalEmbedder
+    from asknews.settings import get_settings
 
-    return GemmaEmbedder()
+    return LocalEmbedder(get_settings().embed_model)
 
 
 @app.get("/info")

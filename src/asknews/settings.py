@@ -40,6 +40,14 @@ class Settings(BaseSettings):
             "hash (deterministic stand-in), remote (embedding service) or local (in-process model)."
         ),
     )
+    embed_model: str = Field(
+        default="google/embeddinggemma-300m",
+        validation_alias="ASKNEWS_EMBED_MODEL",
+        description=(
+            "sentence-transformers model for embedder=local and for the embedding service; "
+            "google/embeddinggemma-300m (gated) or intfloat/multilingual-e5-base (open)."
+        ),
+    )
     embed_url: str = Field(
         default="http://127.0.0.1:8201",
         validation_alias="ASKNEWS_EMBED_URL",
