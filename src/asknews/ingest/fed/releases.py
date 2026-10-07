@@ -53,7 +53,9 @@ _MINUTES = re.compile(r"/monetarypolicy/fomcminutes(\d{8})\.htm")
 _RELEASED = re.compile(
     r"fomcminutes(\d{8})\.htm[^(]{0,160}\(Released ([A-Z][a-z]+ \d{1,2}, \d{4})\)", re.S
 )
-_PROJECTIONS = re.compile(r"/monetarypolicy/fomcprojtabl(\d{8})\.htm")
+# One set of projection materials is linked under a misspelt name ("projtable"),
+# so the link is kept as found rather than rebuilt from the date.
+_PROJECTIONS = re.compile(r"(/monetarypolicy/fomcprojtable?(\d{8})\.htm)")
 _LAST_UPDATE = re.compile(r"Last Update:\s*([A-Z][a-z]+ \d{1,2}, \d{4})")
 _YEAR = re.compile(r"\d{4}")
 _SPEECH = re.compile(r"/newsevents/speech/([a-z]+)(\d{8})([a-z])\.htm")
@@ -141,8 +143,7 @@ def list_calendar_releases(fetcher: Fetcher, *, since: int) -> list[Release]:
             releases[("minutes", date)] = Release(
                 "minutes", BASE_URL + path, date, date, released=released.get(date)
             )
-        for date in _PROJECTIONS.findall(page):
-            path = f"/monetarypolicy/fomcprojtabl{date}.htm"
+        for path, date in _PROJECTIONS.findall(page):
             releases[("projections", date)] = Release("projections", BASE_URL + path, date, date)
     return sorted(
         (r for r in releases.values() if int(r.date[:4]) >= since), key=lambda r: (r.date, r.kind)
