@@ -33,6 +33,12 @@ class Settings(BaseSettings):
         description="Local working directory for fetched sources and caches.",
     )
 
+    youtube_api_key: str | None = Field(
+        default=None,
+        validation_alias="YOUTUBE_API_KEY",
+        description="Optional YouTube Data API key; without it only the channel feed is read.",
+    )
+
     @property
     def database_dsn(self) -> str:
         return str(self.database_url)

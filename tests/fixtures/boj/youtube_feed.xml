@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+<title>BOJchannel</title>
+<entry><id>yt:video:aiDtSnc8XiI</id><yt:videoId>aiDtSnc8XiI</yt:videoId><yt:channelId>UC32Yu7NyStgmKYsXvYofPvQ</yt:channelId>
+<title>総裁定例記者会見（2025年12月19日）</title><link rel="alternate" href="https://www.youtube.com/watch?v=aiDtSnc8XiI"/>
+<author><name>BOJchannel</name></author><published>2025-12-22T05:53:24+00:00</published></entry>
+<entry><id>yt:video:edu01</id><yt:videoId>edu01</yt:videoId><yt:channelId>UC32Yu7NyStgmKYsXvYofPvQ</yt:channelId>
+<title>教えて！にちぎん動画編（物価の安定）</title><link rel="alternate" href="https://www.youtube.com/watch?v=edu01"/>
+<author><name>BOJchannel</name></author><published>2025-12-01T05:00:00+00:00</published></entry>
+<entry><id>yt:video:nodate</id><yt:videoId>nodate</yt:videoId><yt:channelId>UC32Yu7NyStgmKYsXvYofPvQ</yt:channelId>
+<title>総裁定例記者会見</title><link rel="alternate" href="https://www.youtube.com/watch?v=nodate"/>
+<author><name>BOJchannel</name></author><published>2025-11-01T05:00:00+00:00</published></entry>
+</feed>
