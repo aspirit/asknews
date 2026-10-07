@@ -166,6 +166,8 @@
     ["Financial Services Agency, Japan", "Press conferences and releases", "JA", "Public Data License 1.0, attribution and a note on processing"],
     ["Bank of England", "Titles and links only", "EN", "Terms allow no republishing of excerpts"]
   ],
+  "about.purpose_h": "Purpose and scope",
+  "about.purpose_p": "AskNews is a demonstration and research project, not a commercial service. Everything it holds is the official, publicly released communication of central banks and finance ministries, used under each publisher's terms: with attribution, unaltered, and non-commercially. The pipeline is not tied to this field. The same ingestion, retrieval and answering can index the public publications of any sector and answer questions over them with the same citations.",
   "about.sources_note": "AskNews is a non-commercial demonstration. Each source's terms are checked before material is used.",
   "about.ai_h": "How generated content is labelled",
   "about.ai_p": "Anything AskNews generates carries the same AI mark. Official text, such as statements, transcripts and report sections, is shown as published and is never rewritten.",
