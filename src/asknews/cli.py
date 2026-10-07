@@ -34,10 +34,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     from asknews import evaluation, jobs, topics
     from asknews.embed import worker
-    from asknews.generate import briefs, summaries
+    from asknews.generate import briefs, summaries, titles
 
     topics.add_cli(commands)
     worker.add_cli(commands)
+    titles.add_cli(commands)
     summaries.add_cli(commands)
     briefs.add_cli(commands)
     jobs.add_cli(commands)

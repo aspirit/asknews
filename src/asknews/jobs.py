@@ -28,6 +28,7 @@ def steps(year: int, *, summaries: int) -> list[tuple[str, list[str]]]:
         ("boj videos", ["ingest", "boj-videos"]),
         ("feeds", ["ingest", "feeds", "--days", "10"]),
         ("topics", ["topics"]),
+        ("titles", ["titles"]),
         ("embed", ["embed"]),
         ("daily briefs", ["briefs", "daily", "--days", "3"]),
         ("meeting briefs", ["briefs", "meetings", "--limit", "3"]),

@@ -232,6 +232,18 @@ def _transcript(fetcher: Fetcher, page: PageInfo) -> str | None:
         return None
 
 
+def _statement_body(conn: Connection, date: str) -> str | None:
+    """The FOMC statement of the same meeting, when it is already in the archive."""
+    row = conn.execute(
+        """
+        SELECT d.body FROM documents d JOIN institutions i ON i.id = d.institution_id
+         WHERE i.code = %s AND d.kind = 'statement' AND d.external_id = %s
+        """,
+        (INSTITUTION, date),
+    ).fetchone()
+    return str(row["body"]) if row and row["body"] else None
+
+
 def _title(video: Video, date: str) -> str:
     if video.name:
         return video.name
@@ -257,7 +269,9 @@ def ingest_press_conference(
     video, captions = _video(fetcher, page, refresh=refresh)
 
     if captions is not None:
-        cues = repair_cues(parse_vtt(captions.text), _transcript(fetcher, page))
+        transcript = _transcript(fetcher, page)
+        statement = None if transcript else _statement_body(conn, date)
+        cues = repair_cues(parse_vtt(captions.text), transcript, statement)
         segments = segment_cues(cues)
         body = " ".join(c.text for c in cues)
         timestamped = True

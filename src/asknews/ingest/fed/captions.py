@@ -50,6 +50,39 @@ def fill_gaps(text: str, transcript: str) -> str:
     return _GAP.sub(fix, text)
 
 
+_FRACTIONS = {
+    "1/4": chr(0xBC),
+    "1/2": chr(0xBD),
+    "3/4": chr(0xBE),
+    "1/8": chr(0x215B),
+    "3/8": chr(0x215C),
+    "5/8": chr(0x215D),
+    "7/8": chr(0x215E),
+}
+_RANGE_GAP = re.compile(r"(\d) {2}(?=to (\d[\d\-/]*) percent)")
+_STATEMENT_RANGE = re.compile(r"(\d[\d\-/]*) to (\d[\d\-/]*) percent")
+
+
+def fill_range_gaps(text: str, statement: str) -> str:
+    """Fill a gap after a digit in a rate range from the statement's wording.
+
+    Captions drop the fraction glyph in "3 3/4 to 4 percent"; the policy
+    statement of the same meeting writes the range as "3-3/4 to 4 percent",
+    so the matching range supplies the fraction.
+    """
+    ranges = {high: low for low, high in _STATEMENT_RANGE.findall(statement)}
+
+    def fix(match: re.Match[str]) -> str:
+        digit, high = match.group(1), match.group(2)
+        low = ranges.get(high, "")
+        whole, _, fraction = low.partition("-")
+        if whole == digit and fraction in _FRACTIONS:
+            return digit + _FRACTIONS[fraction] + " "
+        return digit + " "
+
+    return _RANGE_GAP.sub(fix, text)
+
+
 def restore_dashes(text: str, transcript: str) -> str:
     """Give back the dash where the captions wrote a hyphen and the transcript has a dash.
 
@@ -69,15 +102,19 @@ def restore_dashes(text: str, transcript: str) -> str:
     return _HYPHENATED.sub(fix, text)
 
 
-def repair_cues(cues: Sequence[Cue], transcript: str | None) -> list[Cue]:
-    """Cues with gaps filled and dashes restored from ``transcript``.
-
-    Without a transcript the gaps simply collapse to single spaces.
+def repair_cues(
+    cues: Sequence[Cue], transcript: str | None, statement: str | None = None
+) -> list[Cue]:
+    """Cues with gaps filled and dashes restored from ``transcript``; without
+    one, the meeting's statement can still fill a rate-range gap. Any gap
+    left collapses to a single space.
     """
     repaired: list[Cue] = []
     for cue in cues:
         text = cue.text
         if transcript:
             text = restore_dashes(fill_gaps(text, transcript), transcript)
+        elif statement:
+            text = fill_range_gaps(text, statement)
         repaired.append(Cue(cue.start, cue.end, re.sub(r" {2,}", " ", text).strip()))
     return repaired

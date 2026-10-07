@@ -26,6 +26,7 @@ from asknews.db.migrate import migrate
 from asknews.domain_config import load_speakers, load_topics
 from asknews.embed.base import HashEmbedder
 from asknews.embed.worker import embed_pending
+from asknews.generate.titles import write_pattern_titles
 from asknews.ingest.store import (
     Document,
     Media,
@@ -147,6 +148,7 @@ def seed_archive(db: Connection) -> dict[str, int]:
     replace_segments(db, ids["minutes"], [Segment(0, "Participants discussed the labor market.")])
     embed_pending(db, HashEmbedder())
     tag_pending(db, load_topics(REPO_ROOT / "domain" / "topics.yaml"))
+    write_pattern_titles(db, load_speakers(REPO_ROOT / "domain" / "speakers.yaml"))
     return ids
 
 

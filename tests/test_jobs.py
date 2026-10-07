@@ -7,6 +7,7 @@ def test_daily_plan_is_ordered_and_runnable() -> None:
     labels = [label for label, _ in plan]
     assert labels[:2] == ["fed press conferences", "fed releases"]
     assert labels.index("topics") < labels.index("embed") < labels.index("daily briefs")
+    assert labels.index("titles") < labels.index("summaries")
     parser = build_parser()
     for _, argv in plan:
         parser.parse_args(argv)  # every step is a valid CLI invocation

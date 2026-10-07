@@ -28,11 +28,12 @@ ministry publications. You receive numbered documents (title, publisher, date, e
 Reply with JSON only:
 {"title": {"en": "...", "ja": "..."},
  "points": [{"en": "...", "ja": "...", "documents": [1, 3]}, ...]}
-- Three to six points, each one or two sentences, each stating something a listed document \
-says. Use only the documents; keep numbers, dates and names exact; no evaluation.
+- Three to six points, each at most two short sentences, each stating something a listed \
+document says. Use only the documents; keep numbers, dates and names exact; no evaluation.
 - "documents" lists the numbers of the documents the point draws on. Every point needs at least one.
 - Give every text in both English (en) and Japanese (ja).
-- The title is one line naming the day or the meeting and its main development.
+- The title is a short headline of at most eight words naming the main development. No date \
+and no publisher name: both are shown beside it.
 Return nothing but the JSON object."""
 
 
@@ -191,12 +192,13 @@ def meeting_brief(conn: Connection, llm: LLM, meeting: Meeting) -> int | None:
     )
 
 
-def meetings_without_brief(conn: Connection, *, limit: int) -> list[Meeting]:
+def meetings_without_brief(conn: Connection, *, limit: int, refresh: bool = False) -> list[Meeting]:
     existing = {
         r["meeting_key"]
         for r in conn.execute("SELECT meeting_key FROM briefs WHERE kind = 'meeting'").fetchall()
     }
-    return [m for m in list_meetings(conn, limit=400) if m.key not in existing][:limit]
+    found = list_meetings(conn, limit=400)
+    return [m for m in found if refresh or m.key not in existing][:limit]
 
 
 BUDGET_NOTE = "stopped at the daily budget's generation share\n"
@@ -230,7 +232,10 @@ def run_meetings(args: argparse.Namespace) -> int:
     llm = llm_from_settings()
     budget = get_settings().daily_budget_usd
     with connect(autocommit=True) as conn:
-        for meeting in meetings_without_brief(conn, limit=args.limit):
+        pending = meetings_without_brief(conn, limit=args.limit, refresh=args.refresh)
+        if args.meeting:
+            pending = [m for m in list_meetings(conn, limit=400) if m.key == args.meeting]
+        for meeting in pending:
             if not generation_allowed(conn, budget):
                 sys.stdout.write(BUDGET_NOTE)
                 break
@@ -251,4 +256,6 @@ def add_cli(subparsers: Any) -> None:
     daily.set_defaults(func=run_daily)
     meetings = kinds.add_parser("meetings", help="one brief per policy meeting")
     meetings.add_argument("--limit", type=int, default=5)
+    meetings.add_argument("--refresh", action="store_true", help="regenerate existing briefs")
+    meetings.add_argument("--meeting", help="one meeting key such as fed:20260916, regenerated")
     meetings.set_defaults(func=run_meetings)
