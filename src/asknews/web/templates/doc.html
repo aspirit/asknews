@@ -38,7 +38,11 @@
       {% else %}
       {% set summary = doc.summary_in(lang) %}
       {% if summary %}<div class="aisum" lang="{{ lang }}">{{ ai_tag('ai.summary') }}<p>{{ summary }}</p></div>{% endif %}
+      {% if meta.get('text') == 'unusable' %}
+      <p class="cnt" style="margin-top:32px">{{ t('doc.unreadable') }}</p>
+      {% else %}
       <div class="sec-h" style="margin-top:32px"><h3>{{ t('doc.full_text') }}</h3></div>
+      {% endif %}
       {% set ns = namespace(n=0) %}
       <div class="dsecs">{% for s in segments %}{% for para in s.text.split('\n\n') %}{% set ns.n = ns.n + 1 %}{% set anchor = 's' ~ (s.position + 1) if loop.index0 == 0 else 's' ~ (s.position + 1) ~ '-' ~ loop.index0 %}
         <section id="{{ anchor }}" class="dsec"><h3><a class="anc" href="#{{ anchor }}">&sect;{{ ns.n }}</a>{% if s.speaker and loop.index0 == 0 %}{{ s.speaker }}{% endif %}</h3><p>{{ para }}</p></section>{% endfor %}{% endfor %}

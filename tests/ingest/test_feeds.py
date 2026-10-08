@@ -10,6 +10,7 @@ from asknews.db.connection import Connection
 from asknews.db.migrate import migrate
 from asknews.ingest import feeds
 from asknews.ingest.http import Fetcher
+from tests.ingest.pdfs import minimal_pdf
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "feeds"
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -103,9 +104,60 @@ PAGE = (
 
 
 def handler(request: httpx.Request) -> httpx.Response:
-    if str(request.url) == "https://example.test/press/pr1.en.html":
+    url = str(request.url)
+    if url == "https://example.test/press/pr1.en.html":
         return httpx.Response(200, text=PAGE, headers={"content-type": "text/html"})
+    if url == "https://example.test/press/speech.pdf":
+        return httpx.Response(
+            200, content=minimal_pdf(PDF_LINES), headers={"content-type": "application/pdf"}
+        )
+    if url == "https://example.test/press/mislabelled":  # a PDF served as HTML
+        return httpx.Response(
+            200, content=minimal_pdf(PDF_LINES), headers={"content-type": "text/html"}
+        )
+    if url == "https://example.test/press/scan.pdf":  # a file without a text layer
+        return httpx.Response(
+            200,
+            content=b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n1 0 obj << >> endobj",
+            headers={"content-type": "application/pdf"},
+        )
     return httpx.Response(404)
+
+
+PDF_LINES = [
+    "The Governing Council decided to keep the three key interest rates unchanged.",
+    "Inflation is expected to settle at around the two percent target over the medium term.",
+    "The Council will follow a data-dependent and meeting-by-meeting approach.",
+]
+
+
+def test_linked_pdfs_are_read_as_pdfs(tmp_path: Path) -> None:
+    fetcher = Fetcher(tmp_path, transport=httpx.MockTransport(handler), min_interval=0)
+    source = feeds.Source("ecb-press", "ecb", "u", "en", "release", "page")
+    posted = datetime(2026, 10, 7, tzinfo=UTC)
+    for link in ("https://example.test/press/speech.pdf", "https://example.test/press/mislabelled"):
+        entry = feeds.Entry("A speech", link, posted, description="Blurb only.")
+        items, origin = feeds.body_paragraphs(fetcher, source, entry, refresh=False)
+        assert origin == "page", link
+        assert any("three key interest rates unchanged" in p for p in items), link
+        assert not any(p.startswith("%PDF") for p in items), link
+    # No text layer: the feed's own blurb stands in, never the file's bytes.
+    entry = feeds.Entry(
+        "A scan", "https://example.test/press/scan.pdf", posted, description="Blurb only."
+    )
+    assert feeds.body_paragraphs(fetcher, source, entry, refresh=False) == (
+        ["Blurb only."],
+        "description",
+    )
+    # A missing page falls back the same way.
+    entry = feeds.Entry(
+        "Gone", "https://example.test/press/gone.html", posted, description="Blurb only."
+    )
+    assert feeds.body_paragraphs(fetcher, source, entry, refresh=False) == (
+        ["Blurb only."],
+        "description",
+    )
+    fetcher.close()
 
 
 @pytest.mark.integration

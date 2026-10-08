@@ -27,8 +27,10 @@ import yaml
 from asknews.db.connection import Connection, connect
 from asknews.ingest.boj import normalise as normalise_ja
 from asknews.ingest.boj import pack_ja
+from asknews.ingest.boj import pdf_paragraphs as boj_pdf_paragraphs
 from asknews.ingest.htmltext import content_window, drop_boilerplate, pack_paragraphs, paragraphs
-from asknews.ingest.http import Fetcher, FetchError
+from asknews.ingest.http import Fetched, Fetcher, FetchError
+from asknews.ingest.pdf import pdf_text
 from asknews.ingest.store import Document, Segment, replace_segments, upsert_document
 from asknews.settings import get_settings
 
@@ -281,6 +283,23 @@ def _page_paragraphs(markup: str, source: Source) -> list[str]:
     return items
 
 
+def _is_pdf(fetched: Fetched) -> bool:
+    """By the declared type or the file's own signature: a link's extension
+    and a server's Content-Type are both unreliable."""
+    declared = (fetched.content_type or "").split(";")[0].strip().lower()
+    return declared == "application/pdf" or fetched.content[:5] == b"%PDF-"
+
+
+def _pdf_paragraphs(text: str, lang: str) -> list[str]:
+    """Paragraphs from a PDF's text; empty when it had no readable text."""
+    if not text:
+        return []
+    if lang == "ja":
+        return boj_pdf_paragraphs(text)
+    blocks = re.split(r"\n\s*\n", text)
+    return [re.sub(r"\s*\n\s*", " ", b).strip() for b in blocks if b.strip()]
+
+
 def body_paragraphs(
     fetcher: Fetcher, source: Source, entry: Entry, *, refresh: bool
 ) -> tuple[list[str], str]:
@@ -291,11 +310,14 @@ def body_paragraphs(
         return [], "title_only"
     if source.body == "page":
         try:
-            page = fetcher.get(entry.link, refresh=refresh).text
+            fetched = fetcher.get(entry.link, refresh=refresh)
         except FetchError as exc:
             LOG.warning("%s: page unavailable, using description: %s", entry.link, exc)
         else:
-            items = _page_paragraphs(page, source)
+            if _is_pdf(fetched):
+                items = _pdf_paragraphs(pdf_text(fetched.content), source.lang)
+            else:
+                items = _page_paragraphs(fetched.text, source)
             if sum(len(p) for p in items) >= 200:
                 return items, "page"
     description = _TAGS.sub(" ", entry.description)

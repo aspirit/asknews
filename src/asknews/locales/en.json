@@ -271,5 +271,6 @@
       "Titles shown in a language other than the original"
     ]
   ],
-  "ask.close": "Close"
+  "ask.close": "Close",
+  "doc.unreadable": "The text of this document could not be read from the publisher's file. Read it at the source."
 }

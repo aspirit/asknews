@@ -287,8 +287,10 @@ def ingest_item(
     else:
         text = pdf_text(fetcher.get(pdf_url, refresh=refresh).content)
         paragraphs = pdf_paragraphs(text)
-    if not paragraphs:
-        raise ValueError(f"{pdf_url}: no text found")
+    unusable = not paragraphs
+    if unusable:
+        # The document exists and belongs in the archive; its text does not.
+        LOG.warning("%s: no readable text, stored as a link to the original", pdf_url)
 
     published = item.published or page_date or parse_ja_date(text[:600])
     if published is None:
@@ -332,8 +334,8 @@ def ingest_item(
             title=title,
             published_at=when,
             source_url=item.page_url or item.url,
-            body="\n\n".join(paragraphs),
-            meta=meta,
+            body=None if unusable else "\n\n".join(paragraphs),
+            meta={**meta, "text": "unusable"} if unusable else meta,
             speaker_id=speaker_id,
         ),
     )

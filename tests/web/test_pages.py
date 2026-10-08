@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
 
 from asknews.answer.llm import ScriptedLLM
+from asknews.ingest.store import Document, upsert_document
 
 pytestmark = pytest.mark.integration
 Api = tuple[TestClient, dict[str, int], ScriptedLLM]
@@ -41,6 +43,31 @@ def test_language_versions_link_each_other(api: Api) -> None:
     assert 'href="/archive/latest?kind=statement" hreflang="en"' in japanese
     assert client.get("/ja/doc/999999").status_code == 404
     assert client.get("/en/archive").status_code == 404  # English lives at the root
+
+
+def test_a_document_without_readable_text_says_so(api: Api) -> None:
+    client, _, _ = api
+    with client.app.state.runtime.pool.connection() as conn:  # type: ignore[attr-defined]
+        document_id = upsert_document(
+            conn,
+            Document(
+                "boj",
+                "minutes",
+                "ja",
+                "g120209",
+                "Minutes of a meeting whose file has no readable text layer",
+                datetime(2012, 3, 16, 3, tzinfo=UTC),
+                "https://boj.test/minutes/g120209.pdf",
+                body=None,
+                meta={"text": "unusable", "format": "pdf"},
+            ),
+        )
+    page = client.get(f"/doc/{document_id}").text
+    assert "could not be read from the publisher" in page
+    assert "Full text" not in page
+    assert "boj.test/minutes/g120209.pdf" in page  # the original is still one click away
+    japanese = client.get(f"/ja/doc/{document_id}").text
+    assert "読み取れません" in japanese
 
 
 def test_no_escaped_entities_reach_a_page(api: Api) -> None:

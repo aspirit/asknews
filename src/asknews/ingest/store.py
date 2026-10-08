@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import Any
 
 from asknews.db.connection import Connection
+from asknews.ingest.textquality import strip_control
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,8 +53,9 @@ _HYPHENS = str.maketrans({chr(0x2010): "-", chr(0x2011): "-"})
 
 
 def clean_text(value: str | None) -> str | None:
-    """PostgreSQL text cannot hold NUL bytes; some PDF and HTML sources leak them."""
-    return value.replace(chr(0), "").translate(_HYPHENS) if value is not None else None
+    """Control characters some PDF and HTML sources leak are dropped (PostgreSQL
+    text cannot hold NUL bytes at all); non-breaking hyphens are folded."""
+    return strip_control(value).translate(_HYPHENS) if value is not None else None
 
 
 def institution_id(conn: Connection, code: str) -> int:
