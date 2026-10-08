@@ -73,7 +73,7 @@ def fuse(candidates: list[Candidate], passages: dict[int, Passage], query: Query
         scored.append(
             Citation(passage, fused_score(cand, passage, query), tuple(sorted(cand.ranks)))
         )
-    scored.sort(key=lambda c: (-c.score, c.passage.published_at), reverse=False)
+    scored.sort(key=lambda c: (-c.score, -c.passage.published_at.timestamp()))
     per_document: dict[int, int] = {}
     out: list[Citation] = []
     for citation in scored:
