@@ -27,6 +27,8 @@ ROUTES = {
     releases.OUTLOOK_INDEX_URL: fixture("outlook_index.html"),
     releases.SPEECHES_INDEX_URL.format(year=2026): fixture("koen_2026_index.html"),
     "https://www.boj.or.jp/about/press/koen_2026/ko261006a.htm": fixture("ko261006a.html"),
+    "https://www.boj.or.jp/mopo/mpmdeci/state_2026/k260123a.htm": fixture("k241219a.html"),
+    "https://www.boj.or.jp/mopo/mpmsche_minu/minu_2025/g241219.htm": fixture("g241219.html"),
 }
 PDF_URLS = {
     "https://www.boj.or.jp/mopo/mpmdeci/mpr_2026/k260918a.pdf",
@@ -60,7 +62,14 @@ def fetcher(tmp_path: Path) -> Fetcher:
 def test_release_index_distinguishes_statements(fetcher: Fetcher) -> None:
     items = releases.list_releases(fetcher, since=2026)
     kinds = {i.stem: i.kind for i in items}
-    assert kinds == {"mpr260930a": "release", "k260918b": "release", "k260918a": "statement"}
+    assert kinds == {
+        "mpr260930a": "release",
+        "k260918b": "release",
+        "k260918a": "statement",
+        "k260123a": "statement",  # a statement published as a page
+    }
+    page = next(i for i in items if i.stem == "k260123a")
+    assert page.url.endswith("/mopo/mpmdeci/state_2026/k260123a.htm")
     statement = next(i for i in items if i.kind == "statement")
     assert statement.title == "金融市場調節方針の変更について"
     assert statement.published == date(2026, 9, 18)
@@ -72,6 +81,7 @@ def test_minutes_and_opinions_carry_publication_and_meeting_dates(fetcher: Fetch
     assert by_stem["g251219"].published == date(2026, 1, 27)  # December meeting, January minutes
     assert by_stem["g251219"].meeting == "12月18、19日開催分"
     assert by_stem["g250501"].published == date(2025, 6, 20)
+    assert by_stem["g241219"].url.endswith("/minu_2025/g241219.htm")  # minutes as a page
     assert (by_stem["opi251219"].kind, by_stem["opi251219"].published) == (
         "opinions",
         date(2025, 12, 26),
@@ -101,6 +111,31 @@ def test_speeches_carry_speaker_text(fetcher: Fetcher) -> None:
         ("ko261006a", "植田総裁"),
         ("ko260902a", "高田審議委員"),
     ]
+
+
+@pytest.mark.integration
+def test_ingest_statement_and_minutes_published_as_pages(db: Connection, fetcher: Fetcher) -> None:
+    migrate(db)
+    directory = load_speakers(REPO_ROOT / "domain" / "speakers.yaml")
+    statement = next(i for i in releases.list_releases(fetcher, since=2026) if i.stem == "k260123a")
+    minutes = next(
+        i for i in releases.list_minutes_and_opinions(fetcher, since=2025) if i.stem == "g241219"
+    )
+    releases.ingest_item(db, fetcher, statement, directory=directory)
+    releases.ingest_item(db, fetcher, minutes, directory=directory)
+    rows = {
+        r["kind"]: r
+        for r in db.execute(
+            "SELECT kind, title, published_at, body, meta FROM documents"
+        ).fetchall()
+    }
+    assert rows["statement"]["meta"] == {"format": "html"}
+    assert rows["statement"]["published_at"].date() == date(2026, 1, 23)
+    assert rows["statement"]["body"].startswith("日本銀行は、本日、政策委員会・金融政策決定会合")
+    assert "PDF版ダウンロード" not in rows["statement"]["body"]  # the download link line is dropped
+    assert rows["minutes"]["title"] == "金融政策決定会合議事要旨（12月18、19日開催分）"
+    assert rows["minutes"]["published_at"].date() == date(2025, 1, 29)
+    assert rows["minutes"]["body"].startswith("本議事要旨は")
 
 
 def test_pdf_paragraphs_join_wrapped_lines() -> None:

@@ -1,11 +1,13 @@
 """Bank of Japan statements, minutes, outlook reports and speeches.
 
-Everything here is a PDF reached from a yearly index page:
+Everything is reached from a yearly index page:
 
-* statements and operational notices from the monetary policy releases index;
+* statements and operational notices from the monetary policy releases
+  index: PDFs up to 2017, pages since 2018;
 * minutes and the Summary of Opinions from their yearly indexes, whose rows
-  give the publication date and the meeting dates;
-* the Outlook Report's basic view from the outlook index;
+  give the publication date and the meeting dates; minutes are pages since
+  2018, the Summary of Opinions stays a PDF;
+* the Outlook Report's basic view from the outlook index (PDF);
 * speeches, whose index rows name the speaker and whose pages link the PDF.
 """
 
@@ -59,8 +61,13 @@ _ROW = re.compile(r"<tr>(.*?)</tr>", re.S)
 _CELL_LINK = re.compile(r"<td[^>]*>\s*<a href=\"([^\"]+)\"[^>]*>(.*?)</a>", re.S)
 _DATED_ROW = re.compile(r"<td>([^<]*)</td>\s*<td><a href=\"([^\"]+)\"[^>]*>(.*?)</a>", re.S)
 _STATEMENT = re.compile(r"/mopo/mpmdeci/mpr_\d{4}/(k\d{6}a)\.pdf$")
+_STATEMENT_PAGE = re.compile(r"/mopo/mpmdeci/state_\d{4}/(k\d{6}a)\.htm$")
 _RELEASE = re.compile(r"/mopo/mpmdeci/mpr_\d{4}/((?:mpr|k)\d{6}[a-z]?)\.pdf$")
-_MINUTES = re.compile(r"/mopo/mpmsche_minu/minu_\d{4}/(g\d{6})\.pdf$")
+_MINUTES = re.compile(r"/mopo/mpmsche_minu/minu_\d{4}/(g\d{6})\.(?:pdf|htm)$")
+# Lines of a page that are not the text: the Bank's name on its own, the PDF
+# link, the date line and the heading that repeats the title.
+_BANK_NAME = chr(0x65E5) + chr(0x672C) + chr(0x9280) + chr(0x884C)
+_PDF_LINK = "PDF"
 _OPINIONS = re.compile(r"/mopo/mpmsche_minu/opinion_\d{4}/(opi\d{6})\.pdf$")
 _OUTLOOK = re.compile(r"/mopo/outlook/(gor(\d{2})(\d{2})a)\.pdf$")
 _SPEECH_PAGE = re.compile(r"/about/press/koen_\d{4}/(ko\d{6}[a-z])\.htm$")
@@ -106,10 +113,11 @@ def list_releases(fetcher: Fetcher, *, since: int) -> list[Item]:
             LOG.warning("no releases index for %s: %s", year, exc)
             continue
         for posted_text, path, title_html in _DATED_ROW.findall(page):
-            match = _RELEASE.search(path)
+            match = _RELEASE.search(path) or _STATEMENT_PAGE.search(path)
             if match is None:
                 continue
-            kind = "statement" if _STATEMENT.search(path) else "release"
+            is_statement = _STATEMENT.search(path) or _STATEMENT_PAGE.search(path)
+            kind = "statement" if is_statement else "release"
             items.append(
                 Item(
                     kind,
@@ -209,6 +217,24 @@ def html_body(page_markup: str) -> str:
     return "\n".join(normalise(p) for p in paragraphs(window))
 
 
+def page_paragraphs(page_markup: str, *, title: str) -> list[str]:
+    """The text of a statement or minutes page: its paragraphs without the
+    heading, the date line, the Bank's name and the PDF link."""
+    heading = title.split(chr(0xFF08))[0]  # the title before its parenthetical
+    out: list[str] = []
+    for line in html_body(page_markup).split("\n"):
+        if not line or line == _BANK_NAME or line.startswith(_PDF_LINK) or _is_date_line(line):
+            continue
+        if heading and heading in line and len(line) <= len(title) + 24:
+            continue  # the page's own heading
+        out.append(line)
+    return out
+
+
+def _is_date_line(line: str) -> bool:
+    return len(line) <= 16 and parse_ja_date(line) is not None
+
+
 def _speaker_id(conn: Connection, directory: SpeakerDirectory, text: str, when: date) -> int | None:
     spec = directory.find(INSTITUTION, text, when=when)
     if spec is None:
@@ -253,6 +279,11 @@ def ingest_item(
         else:  # some speeches are published as page text only
             text = html_body(page)
             paragraphs = [p for p in text.split("\n") if p]
+    elif item.url.endswith(".htm"):  # statements and minutes are pages since 2018
+        page = fetcher.get(item.url, refresh=refresh).text
+        text = html_body(page)
+        heading = _minutes_title(item, "") if item.kind in ("minutes", "opinions") else item.title
+        paragraphs = page_paragraphs(page, title=heading)
     else:
         text = pdf_text(fetcher.get(pdf_url, refresh=refresh).content)
         paragraphs = pdf_paragraphs(text)
@@ -282,9 +313,11 @@ def ingest_item(
         if item.kind == "speech" and item.speaker_text
         else None
     )
-    meta: dict[str, Any] = (
-        {"pdf_url": pdf_url} if pdf_url != item.url or item.kind != "speech" else {}
-    )
+    meta: dict[str, Any] = {}
+    if item.url.endswith(".htm") and item.kind != "speech":
+        meta["format"] = "html"
+    elif pdf_url != item.url or item.kind != "speech":
+        meta["pdf_url"] = pdf_url
     if item.kind in ("opinions", "outlook"):
         meta["subkind"] = item.kind
     if item.meeting:
