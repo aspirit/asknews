@@ -114,6 +114,12 @@ files = ["src", "tests"]
 module = ["pypdfium2", "pypdfium2.*"]
 ignore_missing_imports = true  # ships no type information
 
+[[tool.mypy.overrides]]
+# The optional "local" extra (PyTorch and model weights); CI and the default
+# install leave it out, and LocalEmbedder holds the model as Any.
+module = ["sentence_transformers", "sentence_transformers.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config"
