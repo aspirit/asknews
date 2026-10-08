@@ -3,9 +3,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+from psycopg.errors import CheckViolation
 
 from asknews.db.connection import Connection
 from asknews.db.migrate import migrate
+from asknews.embed.base import HashEmbedder
+from asknews.embed.worker import embed_pending
 from asknews.ingest.store import (
     Document,
     Media,
@@ -108,3 +111,59 @@ def test_media_and_speaker_upserts(conn: Connection) -> None:
     ).fetchone()
     assert row is not None
     assert (row["duration_sec"], row["name"]) == (3133, "Jerome H. Powell")
+
+
+def test_timing_corrections_preserve_segment_ids_and_embeddings(conn: Connection) -> None:
+    doc_id = upsert_document(conn, sample_document())
+    replace_segments(conn, doc_id, [Segment(0, "A statement.", start_sec=10, end_sec=20)])
+    assert embed_pending(conn, HashEmbedder()) == 1
+    before = conn.execute("SELECT * FROM segment_embeddings").fetchall()
+
+    for start, end in [(12.5, 21.0), (None, None), (0.0, 5.0)]:
+        segments = [Segment(0, "A statement.", start_sec=start, end_sec=end)]
+        assert replace_segments(conn, doc_id, segments)
+        assert not replace_segments(conn, doc_id, segments)
+        assert conn.execute("SELECT start_sec, end_sec FROM segments").fetchone() == {
+            "start_sec": start,
+            "end_sec": end,
+        }
+        assert conn.execute("SELECT * FROM segment_embeddings").fetchall() == before
+        assert embed_pending(conn, HashEmbedder()) == 0
+
+
+def test_text_revision_replaces_vectors_and_can_be_retried(conn: Connection) -> None:
+    doc_id = upsert_document(conn, sample_document())
+    replace_segments(conn, doc_id, [Segment(0, "Original statement.")])
+    assert embed_pending(conn, HashEmbedder()) == 1
+    old = conn.execute("SELECT segment_id FROM segment_embeddings").fetchone()
+    revised = [Segment(0, "Revised statement."), Segment(1, "New explanation.")]
+    assert replace_segments(conn, doc_id, revised)
+    assert conn.execute("SELECT * FROM segment_embeddings").fetchall() == []
+    assert embed_pending(conn, HashEmbedder()) == 2
+    assert old not in conn.execute("SELECT segment_id FROM segment_embeddings").fetchall()
+    assert not replace_segments(conn, doc_id, revised)
+    assert embed_pending(conn, HashEmbedder()) == 0
+    assert conn.execute("SELECT count(*) AS n FROM documents").fetchone() == {"n": 1}
+
+
+@pytest.mark.parametrize("same_text", [False, True])
+def test_failed_replacement_rolls_back_text_timing_and_vectors(
+    conn: Connection, same_text: bool
+) -> None:
+    doc_id = upsert_document(conn, sample_document())
+    original = [Segment(0, "Original.", start_sec=0, end_sec=10), Segment(1, "Second.")]
+    replace_segments(conn, doc_id, original)
+    embed_pending(conn, HashEmbedder())
+    before = conn.execute("SELECT * FROM segments ORDER BY position").fetchall()
+    vectors = conn.execute("SELECT * FROM segment_embeddings ORDER BY segment_id").fetchall()
+    bad = [
+        Segment(0, "Original." if same_text else "Revision.", start_sec=1, end_sec=11),
+        Segment(1, "Second.", start_sec=-1),
+    ]
+    with pytest.raises(CheckViolation):
+        replace_segments(conn, doc_id, bad)
+    assert conn.execute("SELECT * FROM segments ORDER BY position").fetchall() == before
+    assert (
+        conn.execute("SELECT * FROM segment_embeddings ORDER BY segment_id").fetchall() == vectors
+    )
+    assert not replace_segments(conn, doc_id, original)

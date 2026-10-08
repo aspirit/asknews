@@ -135,12 +135,26 @@ def segments_hash(segments: list[Segment]) -> str:
 def replace_segments(conn: Connection, document_id: int, segments: list[Segment]) -> bool:
     """Write the segments of a document. Returns False when nothing changed."""
     new_hash = segments_hash(segments)
-    row = conn.execute(
-        "SELECT content_hash FROM documents WHERE id = %s", (document_id,)
-    ).fetchone()
-    if row is not None and row["content_hash"] == new_hash:
-        return False
     with conn.transaction():
+        row = conn.execute(
+            "SELECT content_hash FROM documents WHERE id = %s FOR UPDATE", (document_id,)
+        ).fetchone()
+        if row is not None and row["content_hash"] == new_hash:
+            # Timing corrections do not change the text being embedded. Keep
+            # segment ids and vectors, but do not silently discard new timings.
+            with conn.cursor() as cur:
+                cur.executemany(
+                    """
+                    UPDATE segments SET start_sec = %s, end_sec = %s
+                     WHERE document_id = %s AND position = %s
+                       AND (start_sec, end_sec) IS DISTINCT FROM (%s::real, %s::real)
+                    """,
+                    [
+                        (s.start_sec, s.end_sec, document_id, s.position, s.start_sec, s.end_sec)
+                        for s in segments
+                    ],
+                )
+                return cur.rowcount > 0
         conn.execute("DELETE FROM segments WHERE document_id = %s", (document_id,))
         with conn.cursor() as cur:
             cur.executemany(
