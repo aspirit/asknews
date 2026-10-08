@@ -62,7 +62,7 @@ def _phrases(conn: Connection, query: Query, out: _Collector) -> None:
          ORDER BY d.published_at DESC, s.id
          LIMIT %s
         """,
-        [f"%{p}%" for p in query.phrases] + params + [LEXICAL_LIMIT],
+        [_contains(p) for p in query.phrases] + params + [LEXICAL_LIMIT],
     ).fetchall()
     out.add("phrase", rows)
 
@@ -106,7 +106,7 @@ def _terms(conn: Connection, query: Query, out: _Collector) -> None:
          ORDER BY score DESC, published_at DESC, id DESC
          LIMIT %s
         """,
-        [f"%{t}%" for t in terms] * 2 + params + [LEXICAL_LIMIT],
+        [_contains(t) for t in terms] * 2 + params + [LEXICAL_LIMIT],
     ).fetchall()
     out.add("terms", rows)
 
@@ -129,8 +129,18 @@ def lexical(conn: Connection, query: Query) -> Lexical:
     return Lexical(list(out.found.values()), out.strict_fulltext)
 
 
-def semantic(conn: Connection, embedder: Embedder, query: Query) -> list[Candidate]:
-    vector = to_pgvector(embedder.embed_query(query.text))
+def _contains(text: str) -> str:
+    """A LIKE pattern matching the text anywhere, with its own wildcards literal."""
+    escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+
+
+def semantic(
+    conn: Connection, embedder: Embedder, query: Query, *, vector: list[float] | None = None
+) -> list[Candidate]:
+    """Nearest passages to the question's embedding; ``vector`` saves a
+    second embedding call when the caller already has it."""
+    literal = to_pgvector(vector if vector is not None else embedder.embed_query(query.text))
     window, params = _window_sql(query)
     join = (
         "JOIN segments s ON s.id = e.segment_id JOIN documents d ON d.id = s.document_id"
@@ -147,7 +157,7 @@ def semantic(conn: Connection, embedder: Embedder, query: Query) -> list[Candida
              ORDER BY e.embedding <=> %s::vector
              LIMIT %s
             """,
-            [vector, embedder.model_name, *params, vector, SEMANTIC_LIMIT],
+            [literal, embedder.model_name, *params, literal, SEMANTIC_LIMIT],
         ).fetchall()
     return [
         Candidate(int(row["id"]), {"semantic": float(row["score"])}, {"semantic": rank})
