@@ -150,9 +150,11 @@ def content_window(markup: str, *, start: Sequence[str], end: Sequence[str]) -> 
 
 
 def drop_boilerplate(items: Iterable[str], *, drop: Iterable[str]) -> list[str]:
-    """Remove paragraphs that equal, or start with, one of the boilerplate strings."""
+    """Remove paragraphs that equal one of the boilerplate strings, or start
+    with one that is a phrase. A single word ("Share") only matches a
+    paragraph that is that word, not every paragraph beginning with it."""
     patterns = tuple(drop)
-    return [p for p in items if not any(p == d or p.startswith(d) for d in patterns)]
+    return [p for p in items if not any(p == d or (" " in d and p.startswith(d)) for d in patterns)]
 
 
 def pack_paragraphs(items: Sequence[str], *, max_chars: int = 900) -> list[str]:

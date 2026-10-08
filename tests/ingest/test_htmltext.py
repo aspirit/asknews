@@ -38,7 +38,10 @@ def test_content_window_without_markers_is_whole_text() -> None:
 
 def test_drop_boilerplate_matches_exact_or_prefix() -> None:
     items = ["Share", "For media inquiries, please email", "Keep me", "Shareholders matter"]
-    assert drop_boilerplate(items, drop=["Share", "For media inquiries"]) == ["Keep me"]
+    assert drop_boilerplate(items, drop=["Share", "For media inquiries"]) == [
+        "Keep me",
+        "Shareholders matter",  # a one-word marker does not take a paragraph that starts with it
+    ]
 
 
 def test_pack_paragraphs_keeps_boundaries_and_splits_long_ones() -> None:
