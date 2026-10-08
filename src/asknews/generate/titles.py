@@ -84,11 +84,22 @@ _FOMC_YOUSHI = "FOMC" + _GIJI_YOUSHI
 _KEIZAI_MITOSHI = "".join(_C(c) for c in (0x7D4C, 0x6E08, 0x898B, 0x901A, 0x3057))
 
 _JA_FULL_DATE = re.compile(rf"(\d{{4}}){_NEN}(\d{{1,2}}){_GATSU}(\d{{1,2}}){_NICHI}")
-_JA_MEETING_DAYS = re.compile(rf"(\d{{1,2}}){_GATSU}(\d{{1,2}})(?:{_TOUTEN}(\d{{1,2}}))?{_NICHI}")
+# Meeting days: "M D, D" within one month, or "M D (day), M D" when the
+# meeting runs into the next month. Groups: month, first day, last day (same
+# month), second month, last day (next month).
+_JA_MEETING_DAYS = re.compile(
+    rf"(\d{{1,2}}){_GATSU}(\d{{1,2}})"
+    rf"(?:{_TOUTEN}(\d{{1,2}})|{_NICHI}{_TOUTEN}(\d{{1,2}}){_GATSU}(\d{{1,2}}))?{_NICHI}"
+)
 _JA_YEAR_MONTH = re.compile(rf"(\d{{4}}){_NEN}(\d{{1,2}}){_GATSU}")
 _MONTH_NAMES = "|".join(MONTHS)
 _EN_DATE = re.compile(rf"({_MONTH_NAMES}) (\d{{1,2}}), (\d{{4}})")
-_EN_DAYS = re.compile(rf"({_MONTH_NAMES}) (\d{{1,2}})(?:[{chr(0x2013)}-](\d{{1,2}}))?, (\d{{4}})")
+# "April 30-May 1, 2024", "October 31 - November 1, 2023" (any dash, spaced or
+# not) or "September 16-17, 2025"
+_EN_DAYS = re.compile(
+    rf"({_MONTH_NAMES}) (\d{{1,2}})"
+    rf"(?:\s*[{chr(0x2013)}-]\s*(?:({_MONTH_NAMES}) )?(\d{{1,2}}))?, (\d{{4}})"
+)
 
 
 def _en_date(year: int, month: int, day: int) -> str:
@@ -138,9 +149,14 @@ def english_title(title: str, published: date, directory: SpeakerDirectory) -> s
         )
         if not days:
             return label
-        month, first, last = int(days.group(1)), int(days.group(2)), days.group(3)
+        month, first = int(days.group(1)), int(days.group(2))
+        second_month, last = days.group(4), days.group(3) or days.group(5)
         year = published.year - 1 if month > published.month else published.year
-        span = f"{MONTHS[month - 1]} {first}" + (f"{chr(0x2013)}{last}" if last else "")
+        span = f"{MONTHS[month - 1]} {first}"
+        if second_month:
+            span += f"{chr(0x2013)}{MONTHS[int(second_month) - 1]} {last}"
+        elif last:
+            span += f"{chr(0x2013)}{last}"
         return f"{label} ({span}, {year})"
     if title.startswith(_TENBOU):
         ym = _JA_YEAR_MONTH.search(title)
@@ -168,10 +184,13 @@ def japanese_title(title: str, published: date, kind: str) -> str | None:
         days = _EN_DAYS.search(title)
         if days:
             month = MONTHS.index(days.group(1)) + 1
-            span = days.group(2) + (f"{chr(0x2013)}{days.group(3)}" if days.group(3) else "")
-            return (
-                f"{_FOMC_YOUSHI}{_OPEN}{days.group(4)}{_NEN}{month}{_GATSU}{span}{_NICHI}{_CLOSE}"
-            )
+            second_month, last, year = days.group(3), days.group(4), days.group(5)
+            span = f"{month}{_GATSU}{days.group(2)}"
+            if last and second_month:
+                span += f"{_NICHI}{chr(0x2013)}{MONTHS.index(second_month) + 1}{_GATSU}{last}"
+            elif last:
+                span += f"{chr(0x2013)}{last}"
+            return f"{_FOMC_YOUSHI}{_OPEN}{year}{_NEN}{span}{_NICHI}{_CLOSE}"
         return _FOMC_YOUSHI
     if kind == "report" and title.startswith("Summary of Economic Projections"):
         found = _EN_DATE.search(title)
@@ -183,20 +202,23 @@ def japanese_title(title: str, published: date, kind: str) -> str | None:
     return None
 
 
-def write_pattern_titles(conn: Connection, directory: SpeakerDirectory) -> int:
+def write_pattern_titles(
+    conn: Connection, directory: SpeakerDirectory, *, refresh: bool = False
+) -> int:
     """Store a pattern title for every core document that has none of this
-    kind yet. Returns the number written."""
+    kind yet, or for all of them when ``refresh`` is set (after a pattern
+    changed). Returns the number written."""
     rows = conn.execute(
         """
         SELECT d.id, d.title, d.lang, d.kind, d.published_at, i.code AS institution
           FROM documents d JOIN institutions i ON i.id = d.institution_id
          WHERE i.code IN ('boj', 'fed')
            AND d.kind IN ('press_conference', 'statement', 'minutes', 'report')
-           AND NOT EXISTS (
+           AND (%s OR NOT EXISTS (
                 SELECT 1 FROM document_translations t
-                 WHERE t.document_id = d.id AND t.model = %s)
+                 WHERE t.document_id = d.id AND t.model = %s))
         """,
-        (PATTERN,),
+        (refresh, PATTERN),
     ).fetchall()
     done = 0
     for row in rows:
@@ -220,13 +242,16 @@ def write_pattern_titles(conn: Connection, directory: SpeakerDirectory) -> int:
     return done
 
 
-def run(_args: argparse.Namespace) -> int:
+def run(args: argparse.Namespace) -> int:
     with connect(autocommit=True) as conn:
-        done = write_pattern_titles(conn, speakers())
+        done = write_pattern_titles(conn, speakers(), refresh=args.refresh)
     sys.stdout.write(f"{done} titles written from patterns\n")
     return 0
 
 
 def add_cli(subparsers: Any) -> None:
     parser = subparsers.add_parser("titles", help="title translations of formulaic documents")
+    parser.add_argument(
+        "--refresh", action="store_true", help="rewrite every pattern title, not only missing ones"
+    )
     parser.set_defaults(func=run)

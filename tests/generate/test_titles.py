@@ -43,6 +43,14 @@ def test_bank_of_japan_titles_in_english() -> None:
     assert english_title(
         "金融政策決定会合における主な意見（12月18、19日開催分）", date(2026, 1, 7), DIRECTORY
     ) == (f"Summary of Opinions at the Monetary Policy Meeting (December 18{EN_DASH}19, 2025)")
+    assert english_title(
+        "金融政策決定会合議事要旨（4月30日、5月1日開催分）", date(2025, 6, 20), DIRECTORY
+    ) == (f"Minutes of the Monetary Policy Meeting (April 30{EN_DASH}May 1, 2025)")
+    assert english_title(
+        "金融政策決定会合における主な意見（10月31日、11月1日開催分）", date(2016, 11, 10), DIRECTORY
+    ) == (
+        f"Summary of Opinions at the Monetary Policy Meeting (October 31{EN_DASH}November 1, 2016)"
+    )
     assert english_title("経済・物価情勢の展望（2026年7月）基本的見解", posted, DIRECTORY) == (
         "Outlook for Economic Activity and Prices (July 2026): The Bank's View"
     )
@@ -67,6 +75,14 @@ def test_federal_reserve_titles_in_japanese() -> None:
         )
         == f"FOMC議事要旨（2026年7月28{EN_DASH}29日）"
     )
+    for title in (
+        "Minutes of the Federal Open Market Committee, April 30-May 1, 2024",
+        f"Minutes of the Federal Open Market Committee, April 30{EN_DASH}May 1, 2024",
+        "Minutes of the Federal Open Market Committee, April 30 - May 1, 2024",
+    ):
+        assert japanese_title(title, date(2024, 5, 22), "minutes") == (
+            f"FOMC議事要旨（2024年4月30日{EN_DASH}5月1日）"
+        )
     assert japanese_title(
         "Summary of Economic Projections, September 16, 2026", when, "report"
     ) == ("経済見通し（SEP・2026年9月16日）")
