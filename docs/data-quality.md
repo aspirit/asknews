@@ -60,15 +60,19 @@ missing page, and the unreadable-document page.
 To scan a database, run the gate over every stored body:
 
 ```sh
-uv run python -c "
+uv run python - <<'EOF'
 import psycopg
 from asknews.ingest.textquality import readable
 from asknews.settings import get_settings
-with psycopg.connect(get_settings().database_dsn) as c:
-    rows = c.execute(\"SELECT id, body FROM documents WHERE body IS NOT NULL
-                       AND coalesce(meta->>'text', 'page') = 'page' AND length(body) >= 200\")
-    print([i for i, body in rows if not readable(body)])
-"
+
+QUERY = """
+    SELECT id, body FROM documents
+     WHERE body IS NOT NULL AND length(body) >= 200
+       AND coalesce(meta->>'text', 'page') = 'page'
+"""
+with psycopg.connect(get_settings().database_dsn) as conn:
+    print([doc_id for doc_id, body in conn.execute(QUERY) if not readable(body)])
+EOF
 ```
 
 An empty list is the expected answer.
