@@ -71,10 +71,11 @@ def videos_from_api(fetcher: Fetcher, api_key: str) -> list[Video]:
     while True:
         url = (
             f"{API_URL}?part=snippet,contentDetails&maxResults=50"
-            f"&playlistId={UPLOADS_PLAYLIST}&key={api_key}"
-            + (f"&pageToken={token}" if token else "")
+            f"&playlistId={UPLOADS_PLAYLIST}" + (f"&pageToken={token}" if token else "")
         )
-        payload = fetcher.get(url, refresh=True).json_body()
+        # The key goes in a header: URLs are written to the cache and to error messages.
+        headers = {"X-Goog-Api-Key": api_key}
+        payload = fetcher.get(url, headers=headers, refresh=True).json_body()
         for item in payload.get("items") or []:
             snippet = item.get("snippet") or {}
             title = str(snippet.get("title") or "")
