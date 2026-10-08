@@ -8,7 +8,7 @@ content terms, a publisher or speaker that was named, and a time window.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
 from asknews.domain_config import SpeakerDirectory
@@ -80,7 +80,6 @@ class Query:
     kinds: tuple[str, ...] = ()  # document kinds the question names ("the minutes")
     window: DateWindow | None = None
     recency: bool = False
-    meta: dict[str, object] = field(default_factory=dict)
 
 
 def detect_language(text: str) -> str:
