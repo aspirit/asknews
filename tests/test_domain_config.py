@@ -13,6 +13,12 @@ def test_shipped_speakers_file_loads_and_matches() -> None:
     assert directory.find("boj", "Transcript of Chair Powell's Press Conference") is None
     assert directory.get("ueda") is not None
     assert directory.get("nobody") is None
+    # A one-character surname is a name only before a role word.
+    masu = directory.find("boj", "増審議委員記者会見（2026年9月10日）")
+    assert masu is not None
+    assert masu.slug == "masu"
+    adachi = directory.find("boj", "安達審議委員記者会見（増加する賃金）")
+    assert (adachi.slug if adachi else None) != "masu"
 
 
 def test_meeting_markers_tell_an_extraordinary_meeting_from_a_temporary_measure() -> None:

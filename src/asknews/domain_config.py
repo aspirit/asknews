@@ -31,6 +31,21 @@ class SpeakerSpec:
     tenure: tuple[date, date | None] | None = None  # when the person held the top job
 
 
+# Governor, Board Member, Member: a one-character surname (a single kanji) is
+# a name only right before one of these, else it is an ordinary word.
+_ROLE_WORDS = (
+    "".join(chr(c) for c in (0x7DCF, 0x88C1)),
+    "".join(chr(c) for c in (0x5BE9, 0x8B70, 0x59D4, 0x54E1)),
+    "".join(chr(c) for c in (0x59D4, 0x54E1)),
+)
+
+
+def _token_in(token: str, text: str) -> bool:
+    if len(token) > 1:
+        return token in text
+    return any(token + role in text for role in _ROLE_WORDS)
+
+
 @dataclass(frozen=True, slots=True)
 class SpeakerDirectory:
     speakers: tuple[SpeakerSpec, ...] = field(default_factory=tuple)
@@ -45,7 +60,8 @@ class SpeakerDirectory:
         candidates = [
             spec
             for spec in self.speakers
-            if spec.institution == institution and any(token in text for token in spec.match)
+            if spec.institution == institution
+            and any(_token_in(token, text) for token in spec.match)
         ]
         if when is not None:
             for spec in candidates:
