@@ -173,3 +173,25 @@ def test_ingest_statement_and_speech(
     assert rows["speech"]["meta"]["pdf_url"].endswith("ko261006a.pdf")
     assert first.segments >= 1
     assert second.segments >= 1
+
+
+def test_a_file_without_readable_text_is_stored_as_a_link(
+    db: Connection, fetcher: Fetcher, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    migrate(db)
+    monkeypatch.setattr(releases, "pdf_text", lambda _data: "")  # no reader made sense of it
+    directory = load_speakers(REPO_ROOT / "domain" / "speakers.yaml")
+    statement = next(
+        i for i in releases.list_releases(fetcher, since=2026) if i.kind == "statement"
+    )
+    outcome = releases.ingest_item(db, fetcher, statement, directory=directory)
+    row = db.execute(
+        "SELECT body, meta, source_url FROM documents WHERE id = %s", (outcome.document_id,)
+    ).fetchone()
+    assert row is not None
+    assert row["body"] is None
+    assert row["meta"]["text"] == "unusable"
+    assert row["source_url"]  # still one click from the original
+    assert outcome.segments == 0
+    count = db.execute("SELECT count(*) AS n FROM segments").fetchone()
+    assert count == {"n": 0}
