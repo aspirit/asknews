@@ -21,9 +21,9 @@ publishers --ingest--> documents / segments --embed--> segment_embeddings
 | `asknews.answer` | Prompting, the Claude client, reply checking, request logging and the guards (budget, rate). |
 | `asknews.archive` | Read-side queries: lists, detail, meetings assembled from documents, rankings, briefs. |
 | `asknews.topics` | Tags each document once with the topics whose terms it contains, so the rankings read a small table. |
-| `asknews.generate` | Summaries with translations, and daily and meeting briefs. |
+| `asknews.generate` | Summaries with translations, daily and meeting briefs, and pattern-written titles for the banks' regular documents. |
 | `asknews.api`, `asknews.web` | FastAPI application: JSON endpoints under `/api`, Jinja2 pages, static files, locales. |
-| `domain/` | Everything that names the real world: speakers, gate vocabulary, topics, feeds, featured videos, sample questions, evaluation cases. |
+| `domain/` | Everything that names the real world: speakers, gate vocabulary, topics, feeds, featured videos, sample questions, evaluation cases, the markers that make a statement a policy meeting, and the glossary of document names. |
 
 ## Data model
 
@@ -35,7 +35,9 @@ with the model name). `media` attaches a provider video to a document;
 and `ask_requests` hold generated content and usage.
 
 `document_topics` holds each document's topics, computed once from the
-term list and refreshed when that list changes.
+term list and refreshed when that list changes. `document_translations`
+holds a title and summary in the other language per document; a title
+written from a pattern (model `pattern`) is never overwritten by a model's.
 
 Policy meetings are not a table. They are read off the documents: the
 Federal Reserve's statement, press conference and minutes share the
@@ -53,6 +55,12 @@ HNSW, cosine). A month or year named in the question filters both paths
 inside SQL. Results are fused by reciprocal rank, boosted when the passage
 matches a named publisher, speaker or period, capped at two passages per
 document, and cut to twelve.
+
+Time words ("most recent") and publisher names set a window and a boost
+rather than being searched for; a recency question also searches the last
+90 days on its own, and a question that names a kind of document ("the
+minutes") favours that kind. A reporter's question retrieved from a Bank
+of Japan transcript brings the answer that follows it.
 
 The **domain gate** declines questions that name nothing in the vocabulary,
 no publisher and no known speaker, unless lexical search still finds a

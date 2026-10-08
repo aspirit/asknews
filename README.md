@@ -68,6 +68,7 @@ and are skipped when it is unset.
 | `asknews ingest boj-kaiken` / `boj-releases` / `boj-videos` | Bank of Japan press conferences; statements, minutes, opinions, outlook, speeches; YouTube videos |
 | `asknews ingest feeds` | Other publishers' RSS feeds (configured in `domain/feeds.yaml`) |
 | `asknews topics` | Tag documents with the topics they mention (`domain/topics.yaml`) |
+| `asknews titles` | Titles of formulaic documents in the other language, written from patterns |
 | `asknews embed` | Embed segments that lack a vector |
 | `asknews summarize` / `asknews briefs daily` / `asknews briefs meetings` | Generated summaries, translations and briefs |
 | `asknews daily` | All of the above, incrementally, for a scheduled run |

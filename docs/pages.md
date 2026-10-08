@@ -17,7 +17,10 @@ it.
 - **Document language is independent of interface language.** Federal
   Reserve material is English; Bank of Japan material is Japanese. Every list
   item carries an original-language badge, and a document is always shown in
-  its original language. Where a generated translation of a title or summary
+  its original language. Titles of the banks' regular documents (press
+  conferences, statements, minutes, summaries of opinions, outlook reports)
+  are rendered in the other language from patterns, using the publishers'
+  own English names. Where a generated translation of a title or summary
   exists it is shown next to the original and labelled as generated.
 - **Generated content is labelled.** Summaries, briefs, meeting titles and
   translations produced by a language model carry a visible label. Nothing
