@@ -16,7 +16,7 @@ import re
 import sys
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
@@ -79,6 +79,71 @@ class Outcome:
     document_id: int
     segments: int
     changed: bool
+
+
+_MONTHS = (
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+)
+_MONTH_NAMES = "|".join(_MONTHS)
+_EN_DAY_FIRST = re.compile(rf"\b(\d{{1,2}}) ({_MONTH_NAMES}) (\d{{4}})\b")
+_EN_MONTH_FIRST = re.compile(rf"\b({_MONTH_NAMES}) (\d{{1,2}}), (\d{{4}})\b")
+_NEN, _GATSU, _NICHI = chr(0x5E74), chr(0x6708), chr(0x65E5)
+_REIWA = chr(0x4EE4) + chr(0x548C)  # the current Japanese era, from 2019
+_JA_YMD = re.compile(rf"(\d{{4}})\s*{_NEN}\s*(\d{{1,2}})\s*{_GATSU}\s*(\d{{1,2}})\s*{_NICHI}")
+_JA_REIWA = re.compile(
+    rf"{_REIWA}\s*(\d{{1,2}})\s*{_NEN}\s*(\d{{1,2}})\s*{_GATSU}\s*(\d{{1,2}})\s*{_NICHI}"
+)
+_EVENT_LOOKBACK = timedelta(days=120)
+
+
+def _dates_in(text: str) -> list[date]:
+    found: list[tuple[int, date]] = []
+    for pattern in (_JA_REIWA, _JA_YMD, _EN_DAY_FIRST, _EN_MONTH_FIRST):
+        for match in pattern.finditer(text):
+            try:
+                if pattern is _JA_REIWA:
+                    when = date(
+                        2018 + int(match.group(1)), int(match.group(2)), int(match.group(3))
+                    )
+                elif pattern is _JA_YMD:
+                    when = date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+                elif pattern is _EN_DAY_FIRST:
+                    when = date(
+                        int(match.group(3)), _MONTHS.index(match.group(2)) + 1, int(match.group(1))
+                    )
+                else:
+                    when = date(
+                        int(match.group(3)), _MONTHS.index(match.group(1)) + 1, int(match.group(2))
+                    )
+            except ValueError:
+                continue
+            found.append((match.start(), when))
+    return [when for _, when in sorted(found)]
+
+
+def event_date(text: str, *, posted: date) -> date | None:
+    """The date an item is about, when its title or opening text names one.
+
+    Feeds date items by when they were posted: a press conference summary
+    appears days after the conference, and a speech enters the BIS library
+    after it was given. The first date named in the text that falls within
+    the previous four months is the item's own date.
+    """
+    for when in _dates_in(text):
+        if posted - _EVENT_LOOKBACK <= when <= posted:
+            return when
+    return None
 
 
 def load_sources(path: Path) -> list[Source]:
@@ -206,9 +271,14 @@ def _page_paragraphs(markup: str, source: Source) -> list[str]:
     return items
 
 
-def body_paragraphs(fetcher: Fetcher, source: Source, entry: Entry, *, refresh: bool) -> list[str]:
+def body_paragraphs(
+    fetcher: Fetcher, source: Source, entry: Entry, *, refresh: bool
+) -> tuple[list[str], str]:
+    """The paragraphs stored for an entry and where they came from:
+    ``page`` (the linked page's text), ``description`` (the feed's own
+    blurb) or ``title_only`` (nothing, by the publisher's terms)."""
     if source.body == "none":
-        return []
+        return [], "title_only"
     if source.body == "page":
         try:
             page = fetcher.get(entry.link, refresh=refresh).text
@@ -217,22 +287,29 @@ def body_paragraphs(fetcher: Fetcher, source: Source, entry: Entry, *, refresh: 
         else:
             items = _page_paragraphs(page, source)
             if sum(len(p) for p in items) >= 200:
-                return items
+                return items, "page"
     description = _TAGS.sub(" ", entry.description)
     description = re.sub(r"\s+", " ", description).strip()
-    return [description] if description else []
+    return ([description] if description else []), "description"
 
 
 def ingest_entry(
     conn: Connection, fetcher: Fetcher, source: Source, entry: Entry, *, refresh: bool = False
 ) -> Outcome:
-    items = body_paragraphs(fetcher, source, entry, refresh=refresh)
+    items, origin = body_paragraphs(fetcher, source, entry, refresh=refresh)
     body = "\n\n".join(items) if items else None
     meta: dict[str, Any] = {"feed": source.code}
     if entry.creator:
         meta["creator"] = entry.creator
-    if source.body == "none":
-        meta["text"] = "title_only"
+    if origin != "page":
+        meta["text"] = origin
+    posted = entry.published or datetime.now(UTC)
+    own_date = event_date(entry.title + "\n" + " ".join(items)[:600], posted=posted.date())
+    published_at = posted
+    if own_date is not None and own_date != posted.date():
+        # Nine in the morning UTC keeps the calendar date in every publisher's zone.
+        published_at = datetime(own_date.year, own_date.month, own_date.day, 9, tzinfo=UTC)
+        meta["posted"] = posted.date().isoformat()
     document_id = upsert_document(
         conn,
         Document(
@@ -241,7 +318,7 @@ def ingest_entry(
             lang=source.lang,
             external_id=external_id(entry.link),
             title=clean_title(entry.title, source) or entry.link,
-            published_at=entry.published or datetime.now(UTC),
+            published_at=published_at,
             source_url=entry.link,
             body=body,
             meta=meta,

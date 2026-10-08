@@ -58,6 +58,7 @@ def pending_documents(
           FROM documents d JOIN institutions i ON i.id = d.institution_id
          WHERE d.summary IS NULL AND d.body IS NOT NULL AND length(d.body) > 200
            AND d.kind = ANY(%s)
+           AND coalesce(d.meta->>'text', 'page') = 'page'  -- not a feed blurb or a bare title
          ORDER BY CASE
                     WHEN i.code IN ('fed', 'boj') AND d.kind <> 'release'
                          AND d.published_at >= now() - interval '90 days' THEN 0

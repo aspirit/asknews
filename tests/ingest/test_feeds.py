@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import httpx
@@ -69,7 +69,23 @@ def test_title_strip_removes_category_and_stock_phrase() -> None:
     ) == ("Plain title")
 
 
-def test_shipped_feed_configuration_loads() -> None:
+def test_event_date_comes_from_the_text_not_the_posting_date() -> None:
+    posted = date(2026, 10, 7)
+    assert feeds.event_date(
+        "片山財務大臣閣議後記者会見の概要（令和8年9月25日）", posted=posted
+    ) == date(2026, 9, 25)
+    assert feeds.event_date("会見の概要（2026年9月29日）", posted=posted) == date(2026, 9, 29)
+    assert feeds.event_date(
+        "Speech by Ms Jane Doe at the forum, 1 October 2026", posted=posted
+    ) == date(2026, 10, 1)
+    assert feeds.event_date("Remarks, Washington, D.C., October 2, 2026.", posted=posted) == date(
+        2026, 10, 2
+    )
+    assert (
+        feeds.event_date("A survey covering 2024年3月15日 results", posted=posted) is None
+    )  # too old
+    assert feeds.event_date("Minutes dated 15 October 2026", posted=posted) is None  # in the future
+    assert feeds.event_date("No date here", posted=posted) is None
     sources = feeds.load_sources(REPO_ROOT / "domain" / "feeds.yaml")
     codes = {s.code for s in sources}
     assert {"ecb-press", "bis-speeches", "bea-news", "mof-news", "fsa-news", "boe-news"} <= codes
@@ -123,3 +139,19 @@ def test_ingest_entry_from_page_and_title_only(db: Connection, tmp_path: Path) -
     ).fetchone()
     assert row is not None
     assert (row["body"], row["meta"]["text"], titled.segments) == (None, "title_only", 0)
+
+    bis = feeds.Source("bis-speeches", "bis", "u", "en", "speech", "description")
+    blurb = feeds.Entry(
+        "Monetary policy in a world of shocks",
+        "https://example.test/review/r261007a.htm",
+        datetime(2026, 10, 7, tzinfo=UTC),
+        description="Speech by Ms Jane Doe at the forum, Frankfurt, 1 October 2026.",
+    )
+    described = feeds.ingest_entry(db, fetcher, bis, blurb)
+    row = db.execute(
+        "SELECT published_at, meta FROM documents WHERE id = %s", (described.document_id,)
+    ).fetchone()
+    assert row is not None
+    assert row["meta"]["text"] == "description"  # never summarised as if it were the speech
+    assert row["published_at"].date() == date(2026, 10, 1)  # the day of the speech
+    assert row["meta"]["posted"] == "2026-10-07"
