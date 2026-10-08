@@ -212,8 +212,11 @@
     setTimeout(function () { stepNodes[0].className = "done"; stepNodes[1].className = "cur"; }, 450);
     setTimeout(function () { stepNodes[1].className = "done"; stepNodes[2].className = "cur"; }, 1000);
     var started = performance.now();
-    var url = "/api/ask?q=" + encodeURIComponent(question) + (docId ? "&doc=" + docId : "");
-    fetch(url, { headers: { Accept: "application/json" } })
+    fetch("/api/ask", {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ q: question })
+    })
       .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)); })
       .then(function (data) { renderTurn(container, question, data, ((performance.now() - started) / 1000).toFixed(1)); })
       .catch(function () { renderTurn(container, question, { status: "error", paragraphs: [], citations: [] }, 0); });
@@ -230,5 +233,14 @@
     });
   });
 
-  if (root.dataset.question) askQuestion(root.dataset.question);
+  // A question in the URL is only run when the visitor sent it from another
+  // page (the home box, a sample chip, a follow-up link): that page leaves it in
+  // sessionStorage. Anyone else landing on the URL, crawlers included, gets the
+  // question in the box and nothing is asked until they press the button.
+  var intended = null;
+  try {
+    intended = sessionStorage.getItem("ask-intent");
+    sessionStorage.removeItem("ask-intent");
+  } catch (e) { /* storage unavailable: the question waits in the box */ }
+  if (root.dataset.question && intended === root.dataset.question) askQuestion(root.dataset.question);
 })();

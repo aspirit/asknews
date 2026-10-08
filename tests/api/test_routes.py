@@ -35,8 +35,8 @@ def test_document_list_filters_and_detail(api: Api) -> None:
 def test_ask_answers_with_renumbered_citations(api: Api) -> None:
     client, _, llm = api
     llm.replies.append('{"paragraphs": ["The Fed lowered rates [1]."], "followups": ["Why?"]}')
-    body = client.get(
-        "/api/ask", params={"q": "What did the Fed decide about the federal funds rate?"}
+    body = client.post(
+        "/api/ask", json={"q": "What did the Fed decide about the federal funds rate?"}
     ).json()
     assert body["status"] == "answered"
     assert body["paragraphs"] == ["The Fed lowered rates [1]."]
@@ -48,11 +48,12 @@ def test_ask_answers_with_renumbered_citations(api: Api) -> None:
 
 def test_ask_declines_out_of_scope_and_validates_input(api: Api) -> None:
     client, _, _ = api
-    assert (
-        client.get("/api/ask", params={"q": "Best ramen in Tokyo?"}).json()["reason"]
-        == "out_of_scope"
+    assert client.post("/api/ask", json={"q": "Best ramen in Tokyo?"}).json()["reason"] == (
+        "out_of_scope"
     )
-    assert client.get("/api/ask", params={"q": "x"}).status_code == 422
+    assert client.post("/api/ask", json={"q": "x"}).status_code == 422
+    # Only a POST runs a question: a crawler following a link never costs anything.
+    assert client.get("/api/ask", params={"q": "What did the Fed decide?"}).status_code == 405
 
 
 def test_citations_only(api: Api) -> None:

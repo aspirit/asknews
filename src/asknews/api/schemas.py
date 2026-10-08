@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from asknews.archive.documents import DocumentSummary
 from asknews.retrieval.fusion import Citation
@@ -117,6 +117,10 @@ class CitationOut(BaseModel):
             else None,
             url=url,
         )
+
+
+class AskIn(BaseModel):
+    q: str = Field(min_length=2, max_length=500)
 
 
 class AskOut(BaseModel):

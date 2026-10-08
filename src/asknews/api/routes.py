@@ -53,13 +53,15 @@ def _meeting_out(meeting: meetings.Meeting, lang: str) -> schemas.MeetingOut:
     )
 
 
-@router.get("/ask", response_model=schemas.AskOut)
-def ask_endpoint(request: Request, conn: Conn, rt: Rt, q: Question) -> schemas.AskOut:
+@router.post("/ask", response_model=schemas.AskOut)
+def ask_endpoint(request: Request, conn: Conn, rt: Rt, body: schemas.AskIn) -> schemas.AskOut:
+    """Answer a question. A POST, so that a crawler following links can never
+    run one; the page sends it when the visitor presses Ask."""
     result = ask(
         conn,
         rt.embedder,
         rt.llm,
-        q,
+        body.q,
         directory=rt.directory,
         vocab=rt.vocab,
         client_hash=client_hash(request, rt.settings.client_salt),
