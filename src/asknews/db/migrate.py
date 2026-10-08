@@ -113,7 +113,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Apply pending database migrations.")
     parser.add_argument("--dsn", help="connection URL (default: DATABASE_URL)")
     args = parser.parse_args(argv)
-    with connect(args.dsn) as conn:
+    with connect(args.dsn, autocommit=True) as conn:
         done = migrate(conn)
     for migration in done:
         sys.stdout.write(f"applied {migration.label}\n")
