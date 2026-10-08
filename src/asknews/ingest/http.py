@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
@@ -78,7 +79,7 @@ class Fetcher:
         timeout: float = 30.0,
         retries: int = 2,
         transport: httpx.BaseTransport | None = None,
-        sleep: object = time.sleep,
+        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self.cache_dir = cache_dir
         self.min_interval = min_interval
@@ -145,19 +146,22 @@ class Fetcher:
             except httpx.TransportError as exc:
                 if attempt >= self.retries:
                     raise FetchError(url, None, f"transport error: {exc}") from exc
+                retry_after = None
             else:
                 if response.status_code < 400:
                     return response
-                if response.status_code < 500 or attempt >= self.retries:
+                transient = response.status_code == 429 or response.status_code >= 500
+                if not transient or attempt >= self.retries:
                     raise FetchError(url, response.status_code, f"HTTP {response.status_code}")
+                retry_after = _retry_after(response.headers.get("retry-after"))
             attempt += 1
-            self._sleep(min(2.0**attempt, 10.0))  # type: ignore[operator]
+            self._sleep(retry_after if retry_after is not None else min(2.0**attempt, 10.0))
 
     def _pace(self, host: str) -> None:
         last = self._last_request.get(host)
         now = time.monotonic()
         if last is not None and now - last < self.min_interval:
-            self._sleep(self.min_interval - (now - last))  # type: ignore[operator]
+            self._sleep(self.min_interval - (now - last))
         self._last_request[host] = time.monotonic()
 
     def _cache_paths(self, url: str, headers: dict[str, str] | None) -> tuple[Path, Path]:
@@ -166,3 +170,10 @@ class Fetcher:
         host = urlsplit(url).netloc or "unknown"
         base = self.cache_dir / host / digest
         return base.with_suffix(".json"), base.with_suffix(".bin")
+
+
+def _retry_after(value: str | None) -> float | None:
+    """Seconds from a Retry-After header given as a delay; a date form is ignored."""
+    if value is None or not value.strip().isdigit():
+        return None
+    return min(float(value.strip()), 60.0)

@@ -98,6 +98,19 @@ def test_server_errors_are_retried_then_succeed(tmp_path: Path) -> None:
     assert len(server.calls) == 2
 
 
+def test_rate_limits_are_retried_after_the_server_says_so(tmp_path: Path) -> None:
+    server = Server()
+    server.respond(
+        "https://example.test/busy",
+        httpx.Response(429, headers={"retry-after": "3"}),
+        httpx.Response(200, text="later", headers={"content-type": "text/plain"}),
+    )
+    waits: list[float] = []
+    with Fetcher(tmp_path, transport=server.transport(), min_interval=0, sleep=waits.append) as f:
+        assert f.get("https://example.test/busy").text == "later"
+    assert (len(server.calls), waits) == (2, [3.0])
+
+
 def test_client_errors_are_not_retried(tmp_path: Path) -> None:
     server = Server()
     server.respond("https://example.test/missing", httpx.Response(404))
