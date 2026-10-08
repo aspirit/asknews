@@ -71,7 +71,7 @@ def test_summaries_store_text_and_translation(api: Api) -> None:
 
 def test_daily_and_meeting_briefs(api: Api) -> None:
     client, _, _ = api
-    llm = ScriptedLLM([BRIEF_REPLY, BRIEF_REPLY])
+    llm = ScriptedLLM([BRIEF_REPLY, BRIEF_REPLY, BRIEF_REPLY])
     with client.app.state.runtime.pool.connection() as conn:  # type: ignore[attr-defined]
         assert daily_brief(conn, llm, date(2024, 1, 1)) is None  # nothing published that day
         brief_id = daily_brief(conn, llm, date(2025, 9, 17))
@@ -82,6 +82,9 @@ def test_daily_and_meeting_briefs(api: Api) -> None:
         assert brief["title"]["ja"] == "FRBが利下げ"
         assert len(brief["points"]) == 2  # the point citing document 9 was dropped
         assert set(brief["institutions"]) == {"fed"}
+        # Regenerating a day replaces its brief (a NULL meeting key still collides).
+        assert daily_brief(conn, llm, date(2025, 9, 17)) == brief_id
+        assert conn.execute("SELECT count(*) AS n FROM briefs").fetchone() == {"n": 1}
 
         pending = meetings_without_brief(conn, limit=5)
         assert [m.key for m in pending] == ["fed:20250917"]
