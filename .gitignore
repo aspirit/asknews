@@ -21,6 +21,9 @@ htmlcov/
 data/
 models/
 
+# Design handoff and other material that is not part of the repository
+design/
+
 # Editors and OS
 .idea/
 .vscode/
