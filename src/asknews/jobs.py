@@ -18,8 +18,12 @@ LOG = logging.getLogger(__name__)
 
 
 def steps(year: int, *, summaries: int) -> list[tuple[str, list[str]]]:
-    """``(label, argv)`` pairs in execution order."""
-    since = ["--since", str(year)]
+    """``(label, argv)`` pairs in execution order.
+
+    The indexes are read from the previous year as well: minutes and
+    summaries of opinions are filed under the meeting's year and published
+    weeks later, so December's appear in January."""
+    since = ["--since", str(year - 1)]
     return [
         ("fed press conferences", ["ingest", "fed-presconf", *since]),
         ("fed releases", ["ingest", "fed-releases", *since]),
