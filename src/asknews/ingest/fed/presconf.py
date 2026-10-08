@@ -132,7 +132,9 @@ def read_page(html: str) -> PageInfo:
 
 
 def policy_key(fetcher: Fetcher, account: str) -> str:
-    match = _POLICY_KEY.search(fetcher.get(PLAYER_URL.format(account=account)).text)
+    match = _POLICY_KEY.search(
+        fetcher.get(PLAYER_URL.format(account=account), max_age=INDEX_MAX_AGE).text
+    )
     if match is None:
         raise PageError(f"no policy key in player for account {account}")
     return match.group(1)
