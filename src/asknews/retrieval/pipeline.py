@@ -44,7 +44,8 @@ def retrieve(
     named = mentions_domain(query, vocab, directory)
     found = paths.lexical(conn, query)
     lexical = found.candidates
-    semantic = paths.semantic(conn, embedder, query) if (named or lexical) else []
+    vector = embedder.embed_query(query.text) if (named or lexical) else None
+    semantic = paths.semantic(conn, embedder, query, vector=vector) if vector else []
     recent: list[paths.Candidate] = []
     if query.recency and query.window is not None:
         # "Recently" is only a soft window for scoring; old transcripts that
@@ -53,7 +54,8 @@ def retrieve(
         within = replace(query, window=replace(query.window, hard=True))
         recent = paths.lexical(conn, within).candidates
         if named or lexical or recent:
-            recent += paths.semantic(conn, embedder, within)
+            vector = vector if vector is not None else embedder.embed_query(query.text)
+            recent += paths.semantic(conn, embedder, within, vector=vector)
     merged = merge_candidates(recent, lexical, semantic)
     passages = paths.hydrate(conn, [c.segment_id for c in merged])
     citations = fuse(merged, passages, query)
