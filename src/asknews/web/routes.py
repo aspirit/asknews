@@ -120,9 +120,10 @@ def render(request: Request, template: str, *, page: str, **context: Any) -> HTM
             "languages": LANGUAGES,
             "prefix": prefix(lang),
             "u": lambda path: localized_path(path, lang),
-            "alternates": {code: localized_path(base_path + query, code) for code in LANGUAGES},
+            "alternates": {code: localized_path(base_path, code) for code in LANGUAGES},
+            "switches": {code: localized_path(base_path + query, code) for code in LANGUAGES},
             "canonical_path": localized_path(base_path, lang),
-            "settings": get_settings(),
+            "site_url": get_settings().site_url,
             **context,
         },
     )

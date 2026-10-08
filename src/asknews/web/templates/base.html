@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>{% block title %}{{ t('site.name') }}{% endblock %}</title>
 <meta name="description" content="{{ t('site.tagline') }}">
-<link rel="canonical" href="{{ settings.site_url }}{{ canonical_path }}">
-{% for code, href in alternates.items() %}<link rel="alternate" hreflang="{{ code }}" href="{{ settings.site_url }}{{ href }}">
-{% endfor %}<link rel="alternate" hreflang="x-default" href="{{ settings.site_url }}{{ alternates['en'] }}">
+<link rel="canonical" href="{{ site_url }}{{ canonical_path }}">
+{% for code, href in alternates.items() %}<link rel="alternate" hreflang="{{ code }}" href="{{ site_url }}{{ href }}">
+{% endfor %}<link rel="alternate" hreflang="x-default" href="{{ site_url }}{{ alternates['en'] }}">
 <link rel="stylesheet" href="{{ asset('app.css') }}">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2322409a'/%3E%3Ctext x='16' y='22' font-size='18' font-family='sans-serif' font-weight='800' fill='white' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
 {% block head %}{% endblock %}
@@ -21,7 +21,7 @@
       {% for key, href, label in nav_items %}<a href="{{ u(href) }}" class="{{ 'on' if page == key else '' }}">{{ label }}</a>{% endfor %}
     </nav>
     <div class="lang">
-      {% for code in languages %}<a href="{{ alternates[code] }}" hreflang="{{ code }}" class="{{ 'on' if lang == code else '' }}">{{ t('lang.' ~ code) }}</a>{% endfor %}
+      {% for code in languages %}<a href="{{ switches[code] }}" hreflang="{{ code }}" class="{{ 'on' if lang == code else '' }}">{{ t('lang.' ~ code) }}</a>{% endfor %}
     </div>
   </div>
 </header>

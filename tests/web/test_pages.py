@@ -32,9 +32,9 @@ def test_language_versions_link_each_other(api: Api) -> None:
     client, _, _ = api
     page = client.get("/archive/latest", params={"kind": "statement"}).text
     assert 'href="/ja/archive/latest?kind=statement" hreflang="ja"' in page
+    # hreflang links name the canonical path; only the header switch keeps the filter
     assert (
-        '<link rel="alternate" hreflang="ja" href="https://asknews.jp/ja/archive/latest?kind=statement">'
-        in page
+        '<link rel="alternate" hreflang="ja" href="https://asknews.jp/ja/archive/latest">' in page
     )
     assert '<link rel="canonical" href="https://asknews.jp/archive/latest">' in page
     japanese = client.get("/ja/archive/latest", params={"kind": "statement"}).text
