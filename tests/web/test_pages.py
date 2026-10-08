@@ -43,6 +43,14 @@ def test_language_versions_link_each_other(api: Api) -> None:
     assert client.get("/en/archive").status_code == 404  # English lives at the root
 
 
+def test_no_escaped_entities_reach_a_page(api: Api) -> None:
+    client, _, _ = api
+    for path in ("/", "/archive", "/archive/briefs", "/archive/rankings", "/ja/archive/rankings"):
+        page = client.get(path).text
+        assert "&amp;middot;" not in page, path
+        assert "&amp;rarr;" not in page, path
+
+
 def test_archive_pages(api: Api) -> None:
     client, _, _ = api
     assert "Overview" in client.get("/archive").text

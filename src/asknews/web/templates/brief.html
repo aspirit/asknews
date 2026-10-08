@@ -6,7 +6,7 @@
   <div class="story">
     <article>
       <a class="back" href="{{ u('/archive/briefs') }}">&larr; {{ t('archive.briefs') }}</a>
-      <div class="meta">{{ ai_tag('ai.brief') }}<b>{{ t('archive.daily') if brief.kind == 'daily' else t('archive.meeting_brief') }}</b><span>{{ brief.brief_date.strftime('%Y-%m-%d') }}</span><span>{% for code in brief.institutions %}{{ t.institution(code, short=True) }}{{ ' &middot; ' if not loop.last }}{% endfor %}</span></div>
+      <div class="meta">{{ ai_tag('ai.brief') }}<b>{{ t('archive.daily') if brief.kind == 'daily' else t('archive.meeting_brief') }}</b><span>{{ brief.brief_date.strftime('%Y-%m-%d') }}</span><span>{% for code in brief.institutions %}{{ t.institution(code, short=True) }}{% if not loop.last %} &middot; {% endif %}{% endfor %}</span></div>
       <h1>{{ brief.title_in(lang) }}</h1>
       <div class="pts bpts">{% for p in points %}<div><span>{{ p.text }} {% for id in p.documents %}<a class="c" href="{{ u('/doc/' ~ (id)) }}">{{ loop.index }}</a>{% endfor %}</span></div>{% endfor %}</div>
       <div class="sec-h" style="margin-top:40px"><h3>{{ t('brief.cited') }} &middot; {{ cited | length }}</h3></div>
