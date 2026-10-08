@@ -34,6 +34,7 @@ def create_app(runtime: Runtime | None = None) -> FastAPI:
         version=__version__,
         lifespan=lifespan,
         docs_url="/api/docs",
+        openapi_url="/api/openapi.json",
         redoc_url=None,
     )
     application.include_router(router)
