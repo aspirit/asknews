@@ -55,11 +55,6 @@ class AskResult:
     request_id: int | None = None
 
 
-def spent_today(conn: Connection) -> float:
-    """What answers and generation together have cost over the last day."""
-    return spent_last_day(conn)
-
-
 # One advisory lock serialises the check-and-reserve step across workers.
 _RESERVE_LOCK = 0x41534B  # "ASK"
 # The input an answer may carry: the question and up to twelve passages.
@@ -109,7 +104,11 @@ def reserve(
 
 def client_requests(conn: Connection, client_hash: str, *, since: timedelta) -> int:
     row = conn.execute(
-        "SELECT count(*) AS n FROM ask_requests WHERE client_hash = %s AND asked_at >= %s",
+        """
+        SELECT count(*) AS n FROM ask_requests
+         WHERE client_hash = %s AND asked_at >= %s
+           AND NOT (status = 'declined' AND meta->>'reason' IN ('rate', 'budget'))
+        """,
         (client_hash, datetime.now(UTC) - since),
     ).fetchone()
     return int(row["n"]) if row else 0
@@ -307,7 +306,7 @@ def _answer(
             max_tokens=MAX_ANSWER_TOKENS,
         )
     except Exception as exc:
-        LOG.warning("model call failed: %s", exc)
+        LOG.exception("model call failed")
         request_id = _log(
             conn,
             lang=lang,
@@ -323,6 +322,25 @@ def _answer(
             "error", lang, citations=retrieval.citations, reason="model", request_id=request_id
         )
     tokens = (completion.input_tokens, completion.output_tokens)
+    if completion.truncated:
+        # A reply cut off at the token limit is broken JSON at best; it is not shown.
+        request_id = _log(
+            conn,
+            lang=lang,
+            question=question,
+            status="error",
+            client_hash=client_hash,
+            started=started,
+            citations=retrieval.citations,
+            model=completion.model,
+            tokens=tokens,
+            cost=completion.cost_usd,
+            meta={"error": "truncated"},
+            request_id=request_id,
+        )
+        return AskResult(
+            "error", lang, citations=retrieval.citations, reason="model", request_id=request_id
+        )
     if completion.refused:
         request_id = _log(
             conn,

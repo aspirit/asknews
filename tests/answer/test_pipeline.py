@@ -2,13 +2,19 @@ from __future__ import annotations
 
 import threading
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
 from asknews.answer.llm import Completion, ScriptedLLM, estimate_cost
-from asknews.answer.pipeline import MAX_ANSWER_TOKENS, RESERVATION_INPUT_TOKENS, Limits, ask
+from asknews.answer.pipeline import (
+    MAX_ANSWER_TOKENS,
+    RESERVATION_INPUT_TOKENS,
+    Limits,
+    ask,
+    client_requests,
+)
 from asknews.db.connection import Connection, connect
 from asknews.db.migrate import migrate
 from asknews.domain_config import load_speakers
@@ -113,6 +119,8 @@ def test_budget_and_rate_limits(db: Connection) -> None:
         limits=tight,
     )
     assert (first.status, first.reason) == ("declined", "rate")
+    # Being turned away is not a request: the client is not locked out for retrying.
+    assert client_requests(db, "c2", since=timedelta(hours=1)) == 1
     db.execute("UPDATE ask_requests SET cost_usd = 1.5")
     second = ask(
         db,
@@ -145,6 +153,32 @@ def test_ungrounded_reply_becomes_no_sources(db: Connection) -> None:
 def test_cost_estimate() -> None:
     assert estimate_cost("claude-opus-5-5", 1_000_000, 0) == 4.0
     assert estimate_cost("unknown-model", 0, 1_000_000) == 20.0
+
+
+class TruncatingLLM(ScriptedLLM):
+    """A reply cut off at the token limit, as the API reports it."""
+
+    def complete(self, *, system: str, user: str, max_tokens: int) -> Completion:
+        done = super().complete(system=system, user=user, max_tokens=max_tokens)
+        return Completion(
+            '{"paragraphs": ["Rates were cut [1].", "Infl', done.model, 10, 10, truncated=True
+        )
+
+
+def test_a_truncated_reply_is_an_error_not_an_answer(db: Connection) -> None:
+    seed(db)
+    result = ask(
+        db,
+        HashEmbedder(),
+        TruncatingLLM(),
+        "What did the Fed decide about the federal funds rate?",
+        directory=DIRECTORY,
+        vocab=VOCAB,
+    )
+    assert (result.status, result.reason, result.paragraphs) == ("error", "model", [])
+    assert result.citations  # the sources are still shown
+    row = db.execute("SELECT status, meta->>'error' AS error FROM ask_requests").fetchone()
+    assert row == {"status": "error", "error": "truncated"}
 
 
 class ExplodingLLM:

@@ -29,6 +29,7 @@ class Completion:
     input_tokens: int
     output_tokens: int
     refused: bool = False
+    truncated: bool = False  # cut off at max_tokens: not a complete reply
 
     @property
     def cost_usd(self) -> float:
@@ -83,6 +84,7 @@ class ClaudeLLM:
             input_tokens=response.usage.input_tokens,
             output_tokens=response.usage.output_tokens,
             refused=response.stop_reason == "refusal",
+            truncated=response.stop_reason == "max_tokens",
         )
 
 
