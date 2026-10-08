@@ -41,4 +41,4 @@
   'questions': questions
 } | tojson }}</script>
 {% endblock %}
-{% block scripts %}<script src="/static/ask.js" defer></script>{% endblock %}
+{% block scripts %}<script src="{{ asset('ask.js') }}" defer></script>{% endblock %}

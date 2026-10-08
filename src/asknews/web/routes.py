@@ -19,6 +19,7 @@ from asknews.archive import documents, meetings, rankings
 from asknews.archive.documents import KINDS, DocumentSummary
 from asknews.db.connection import Connection
 from asknews.settings import get_settings
+from asknews.web.assets import asset
 from asknews.web.i18n import (
     LANGUAGES,
     Translator,
@@ -32,6 +33,7 @@ WEB_DIR = Path(__file__).resolve().parent
 router = APIRouter(include_in_schema=False)
 templates = Jinja2Templates(directory=str(WEB_DIR / "templates"))
 templates.env.filters["duration"] = duration
+templates.env.globals["asset"] = asset
 Conn = Annotated[Connection, Depends(connection)]
 RANKING_PERIODS = (30, 90, 365, 3650)
 F = TypeVar("F", bound=Callable[..., Any])

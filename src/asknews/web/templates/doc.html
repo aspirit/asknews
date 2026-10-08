@@ -57,4 +57,4 @@
   </div>
 </div>
 {% endblock %}
-{% block scripts %}{% if doc.media_provider %}<script src="/static/player.js" defer></script>{% endif %}{% endblock %}
+{% block scripts %}{% if doc.media_provider %}<script src="{{ asset('player.js') }}" defer></script>{% endif %}{% endblock %}

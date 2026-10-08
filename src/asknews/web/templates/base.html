@@ -8,7 +8,7 @@
 <link rel="canonical" href="{{ settings.site_url }}{{ canonical_path }}">
 {% for code, href in alternates.items() %}<link rel="alternate" hreflang="{{ code }}" href="{{ settings.site_url }}{{ href }}">
 {% endfor %}<link rel="alternate" hreflang="x-default" href="{{ settings.site_url }}{{ alternates['en'] }}">
-<link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="{{ asset('app.css') }}">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2322409a'/%3E%3Ctext x='16' y='22' font-size='18' font-family='sans-serif' font-weight='800' fill='white' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
 {% block head %}{% endblock %}
 </head>
@@ -37,7 +37,7 @@
 </footer></div>
 {% endif %}
 </main>
-<script src="/static/app.js" defer></script>
+<script src="{{ asset('app.js') }}" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
