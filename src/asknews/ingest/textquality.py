@@ -15,6 +15,9 @@ import unicodedata
 # Control characters that carry no text: everything but newline and tab.
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0e-\x1f\x7f]")
 MIN_LETTERS = 50
+# meta["text"] of a document whose file yielded no readable text: it is kept
+# as a dated link to the original, with no body and no passages.
+UNREADABLE = "unusable"
 # Of the letters in readable English or Japanese text, this share belongs to
 # the Latin, Greek, kana or Han ranges; a broken text layer scatters letters
 # across every script there is.

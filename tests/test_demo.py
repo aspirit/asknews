@@ -104,6 +104,11 @@ def test_demo_routes_answers_and_evidence(db: Connection, test_database_url: str
                 page = client.get(f"{prefix}/doc/{doc_id}")
                 assert page.status_code == 200
                 assert "[Demo]" in page.text
+        unreadable = next(v for k, v in ids.items() if "unreadable" in k)
+        english = client.get(f"/doc/{unreadable}").text
+        assert "could not be read from the publisher" in english
+        japanese = client.get(f"/ja/doc/{unreadable}").text
+        assert "\u8aad\u307f\u53d6\u308c\u307e\u305b\u3093" in japanese
         answered = client.post("/api/ask", json={"q": "Fed inflation September 2025"})
         assert answered.status_code == 200
         assert answered.json()["status"] == "answered"

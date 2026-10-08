@@ -17,6 +17,7 @@ from asknews.domain_config import load_topics
 from asknews.embed.base import HashEmbedder
 from asknews.embed.worker import embed_pending
 from asknews.ingest.store import Document, Segment, replace_segments, upsert_document
+from asknews.ingest.textquality import UNREADABLE
 from asknews.topics import tag_pending
 
 DEFAULT_DSN = "postgresql://asknews:asknews@127.0.0.1:55432/asknews_demo"
@@ -105,7 +106,7 @@ def seed(conn: Connection, fixture: Fixture, *, domain: Path) -> dict[str, int]:
                     body="\n\n".join(s.text for s in segments) or None,
                     meta={
                         "demo_fixture": FIXTURE_VERSION,
-                        **({"text": "unreadable"} if not segments else {}),
+                        **({"text": UNREADABLE} if not segments else {}),
                     },
                 ),
             )

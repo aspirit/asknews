@@ -43,6 +43,7 @@ from asknews.ingest.store import (
     upsert_document,
     upsert_speaker,
 )
+from asknews.ingest.textquality import UNREADABLE
 from asknews.settings import get_settings
 
 LOG = logging.getLogger(__name__)
@@ -335,7 +336,7 @@ def ingest_item(
             published_at=when,
             source_url=item.page_url or item.url,
             body=None if unusable else "\n\n".join(paragraphs),
-            meta={**meta, "text": "unusable"} if unusable else meta,
+            meta={**meta, "text": UNREADABLE} if unusable else meta,
             speaker_id=speaker_id,
         ),
     )

@@ -38,7 +38,7 @@
       {% else %}
       {% set summary = doc.summary_in(lang) %}
       {% if summary %}<div class="aisum" lang="{{ lang }}">{{ ai_tag('ai.summary') }}<p>{{ summary }}</p></div>{% endif %}
-      {% if meta.get('text') == 'unusable' %}
+      {% if meta.get('text') == UNREADABLE %}
       <p class="cnt" style="margin-top:32px">{{ t('doc.unreadable') }}</p>
       {% else %}
       <div class="sec-h" style="margin-top:32px"><h3>{{ t('doc.full_text') }}</h3></div>
