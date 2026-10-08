@@ -2,6 +2,9 @@
 
 Bilingual question answering over the public communications of central banks.
 
+[Live application](https://asknews.jp/) | [Local walkthrough](docs/walkthrough.md) |
+[Architecture](docs/architecture.md) | [Retrieval evaluation](docs/evaluation.md)
+
 The archive covers what the Federal Reserve publishes in English and what the
 Bank of Japan publishes in Japanese: press conference videos and transcripts,
 policy statements, meeting minutes, speeches and outlook reports, plus the
@@ -40,6 +43,20 @@ official document or to a moment in the video.
 Requirements: [uv](https://docs.astral.sh/uv/), Python 3.13 (uv installs it
 on demand) and Docker for the local PostgreSQL instance.
 
+For a fixed demonstration without API keys or publisher access:
+
+```sh
+uv sync --locked --all-groups
+make demo
+```
+
+Open <http://127.0.0.1:8001>. This uses six explicitly synthetic documents,
+hash embeddings and scripted answers in a separate local database. See the
+[walkthrough](docs/walkthrough.md) for examples, limitations and shutdown.
+`make demo-eval` runs the fixture retrieval checks and writes a JSON report.
+
+To ingest real publications into the regular development database instead:
+
 ```sh
 uv sync --all-groups
 cp .env.example .env
@@ -73,6 +90,7 @@ and are skipped when it is unset.
 | `asknews summarize` / `asknews briefs daily` / `asknews briefs meetings` | Generated summaries, translations and briefs |
 | `asknews daily` | All of the above, incrementally, for a scheduled run |
 | `asknews eval` | Retrieval regression cases in `domain/eval_cases.yaml` |
+| `asknews demo-seed` | Synthetic fixture data in the isolated local `asknews_demo` database |
 
 ## HTTP API
 
@@ -112,6 +130,8 @@ The OpenAPI document is at `/api/openapi.json` and the interactive reference at 
 - [docs/data-sources.md](docs/data-sources.md): every publisher, how it is accessed, and its terms
 - [docs/pages.md](docs/pages.md): what each page shows
 - [docs/deployment.md](docs/deployment.md): one-host deployment with Docker Compose and nginx
+- [docs/walkthrough.md](docs/walkthrough.md): no-key local demonstration and its boundaries
+- [docs/evaluation.md](docs/evaluation.md): evidence checks, retrieval comparisons and metrics
 
 ## License
 

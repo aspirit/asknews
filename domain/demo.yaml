@@ -1,0 +1,68 @@
+# Synthetic examples, not quotations or a record of actual policy decisions.
+# These belong only in the isolated demo database.
+version: demo-v1
+documents:
+  - institution: fed
+    kind: statement
+    lang: en
+    external_id: "20250917"
+    title: "[Demo] FOMC statement on inflation and employment"
+    published_at: "2025-09-17T18:00:00Z"
+    segments:
+      - text: "This synthetic statement discusses inflation and employment. The Committee monitors price stability and labor market conditions."
+      - text: "The Committee will assess incoming economic data before considering changes in the federal funds rate."
+  - institution: fed
+    kind: press_conference
+    lang: en
+    external_id: "20250917"
+    title: "[Demo] Press conference on monetary policy"
+    published_at: "2025-09-17T18:30:00Z"
+    segments:
+      - text: "How does inflation affect the policy outlook?"
+        speaker: Question
+        start_sec: 10
+        end_sec: 15
+      - text: "In this fictional example, the Chair explains that inflation expectations and employment inform the policy outlook."
+        speaker: Chair
+        start_sec: 16
+        end_sec: 35
+      - text: "Future decisions depend on incoming data rather than a predetermined path for interest rates."
+        speaker: Chair
+        start_sec: 36
+        end_sec: 48
+  - institution: fed
+    kind: minutes
+    lang: en
+    external_id: "20250917"
+    title: "[Demo] Minutes on the balance sheet"
+    published_at: "2025-10-08T18:00:00Z"
+    segments:
+      - text: "Participants discussed the balance sheet and the availability of reserves in this fictional meeting."
+      - text: "Participants also considered employment risks and the uncertainty of the inflation outlook."
+  - institution: boj
+    kind: statement
+    lang: ja
+    external_id: k250919a
+    title: "[Demo] 金融政策決定会合の声明"
+    published_at: "2025-09-19T03:00:00Z"
+    segments:
+      - text: "これは架空のデモ資料です。日本銀行の金融政策決定会合では、物価安定と賃金動向について議論しました。"
+      - text: "金融政策の判断では、経済活動と物価の見通しを確認します。実際の政策決定を示す資料ではありません。"
+  - institution: boj
+    kind: press_conference
+    lang: ja
+    external_id: kk250919a
+    title: "[Demo] 物価と賃金についての記者会見"
+    published_at: "2025-09-19T06:30:00Z"
+    segments:
+      - text: "物価と賃金について、どのように考えていますか。"
+        speaker: Question
+      - text: "この架空の会見では、物価と賃金の動向を確認する必要があると説明しています。"
+        speaker: Governor
+  - institution: boj
+    kind: report
+    lang: ja
+    external_id: demo_unreadable
+    title: "[Demo] 本文を抽出できない資料"
+    published_at: "2025-09-20T03:00:00Z"
+    segments: []

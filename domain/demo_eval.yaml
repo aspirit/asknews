@@ -1,0 +1,41 @@
+# Fixture checks only; these do not measure real-world retrieval quality.
+cases:
+  - id: english-statement
+    question: What did the Fed statement say about labor market conditions in September 2025?
+    expect:
+      institution: fed
+      kind: statement
+      external_id: "20250917"
+      passage_contains: labor market conditions
+  - id: english-minutes
+    question: Where do the Fed minutes discuss "balance sheet"?
+    expect:
+      institution: fed
+      kind: minutes
+      passage_contains: availability of reserves
+  - id: japanese-statement
+    question: 日銀の声明では「物価安定」についてどう述べていますか？
+    expect:
+      institution: boj
+      kind: statement
+      passage_contains: 物価安定と賃金動向
+  - id: japanese-answer
+    question: 日銀の会見では「物価と賃金」についてどう説明していますか？
+    expect:
+      institution: boj
+      kind: press_conference
+      passage_contains: 動向を確認する必要
+    within: 5
+  - id: reporter-following-answer
+    question: In the Fed press conference, "How does inflation affect the policy outlook"?
+    expect:
+      institution: fed
+      kind: press_conference
+      passage_contains: the Chair explains
+    within: 5
+  - id: no-available-period
+    question: What was the Fed decision in 2001?
+    outcome: no_sources
+  - id: outside-archive
+    question: How do I bake a birthday cake?
+    outcome: out_of_scope

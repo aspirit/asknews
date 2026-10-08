@@ -1,0 +1,19 @@
+# Separate project, port and volume from both development and production.
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: asknews
+      POSTGRES_PASSWORD: asknews
+      POSTGRES_DB: asknews_demo
+    ports:
+      - "127.0.0.1:${ASKNEWS_DEMO_DB_PORT:-55432}:5432"
+    volumes:
+      - demo-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asknews -d asknews_demo"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+volumes:
+  demo-pgdata:
