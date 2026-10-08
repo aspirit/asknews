@@ -133,6 +133,7 @@ The OpenAPI document is at `/api/openapi.json` and the interactive reference at 
 - [docs/walkthrough.md](docs/walkthrough.md): no-key local demonstration and its boundaries
 - [docs/evaluation.md](docs/evaluation.md): evidence checks, retrieval comparisons and metrics
 - [docs/decisions.md](docs/decisions.md): storage, retrieval and budget trade-offs
+- [docs/data-quality.md](docs/data-quality.md): unreadable source text, how it was found and fixed
 
 ## License
 
