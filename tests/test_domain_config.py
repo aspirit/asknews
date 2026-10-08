@@ -15,6 +15,19 @@ def test_shipped_speakers_file_loads_and_matches() -> None:
     assert directory.get("nobody") is None
 
 
+def test_meeting_markers_tell_an_extraordinary_meeting_from_a_temporary_measure() -> None:
+    from asknews.domain_config import load_meeting_markers
+
+    markers = load_meeting_markers(REPO_ROOT / "domain" / "meetings.yaml")
+    assert markers.is_statement("fed", "Federal Reserve issues FOMC statement", "")
+    assert not markers.is_statement("fed", "Statement on Longer-Run Goals", "")
+    assert markers.is_statement(
+        "boj", "金融緩和の強化について", "本日、政策委員会・金融政策決定会合において"
+    )
+    assert markers.is_unscheduled("boj", "本日開催した臨時の金融政策決定会合において決定した")
+    assert not markers.is_unscheduled("boj", "感染症の影響への対応のための臨時措置として決定した")
+
+
 def test_slugs_are_unique() -> None:
     directory = load_speakers(REPO_ROOT / "domain" / "speakers.yaml")
     slugs = [s.slug for s in directory.speakers]

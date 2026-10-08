@@ -6,7 +6,8 @@ statement_titles:
   fed: ["FOMC statement"]
 statement_body_markers:
   boj: ["金融政策決定会合"]
-# Text that marks an extraordinary meeting; the Federal Reserve's calendar
-# marks its own, which the ingester records with the statement.
+# Text that marks an extraordinary meeting ("the extraordinary Monetary Policy
+# Meeting held today"); the word alone also appears in "temporary measures".
+# The Federal Reserve's calendar marks its own, recorded with the statement.
 unscheduled_body_markers:
-  boj: ["臨時"]
+  boj: ["臨時の金融政策決定会合"]
