@@ -139,7 +139,7 @@
       var list = el("div", { class: "lst" });
       (S.questions || []).slice(0, 3).forEach(function (q) {
         var b = el("button", { type: "button", text: q });
-        b.addEventListener("click", function () { askQuestion(q); });
+        b.addEventListener("click", function () { suggest(q); });
         list.appendChild(b);
       });
       box.appendChild(el("div", { class: "fu", style: "margin-top:4px" }, [el("div", { class: "sec-h" }, [el("h3", { text: S.examples })]), list]));
@@ -173,7 +173,7 @@
       var list2 = el("div", { class: "lst" });
       data.followups.forEach(function (q) {
         var b = el("button", { type: "button", text: q });
-        b.addEventListener("click", function () { askQuestion(q); });
+        b.addEventListener("click", function () { suggest(q); });
         list2.appendChild(b);
       });
       container.appendChild(el("div", { class: "fu" }, [el("div", { class: "sec-h" }, [el("h3", { text: S.followups })]), list2]));
@@ -190,6 +190,17 @@
       item.addEventListener("mouseenter", function () { setHighlight(n, true); });
       item.addEventListener("mouseleave", function () { setHighlight(n, false); });
     });
+  }
+
+  // A suggested question goes into the visible box for the visitor to send;
+  // nothing is asked until they press the button.
+  function suggest(question) {
+    var scope = thread.hidden ? empty : thread;
+    var input = scope.querySelector("form[data-ask-form] input[name=q]");
+    if (!input) return;
+    input.value = question;
+    input.focus();
+    input.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   function askQuestion(question) {
@@ -233,10 +244,10 @@
     });
   });
 
-  // A question in the URL is only run when the visitor sent it from another
-  // page (the home box, a sample chip, a follow-up link): that page leaves it in
-  // sessionStorage. Anyone else landing on the URL, crawlers included, gets the
-  // question in the box and nothing is asked until they press the button.
+  // A question in the URL is only run when the visitor sent it from the box
+  // on another page: that page leaves it in sessionStorage. Anyone else landing
+  // on the URL, crawlers included, gets the question in the box and nothing is
+  // asked until they press the button.
   var intended = null;
   try {
     intended = sessionStorage.getItem("ask-intent");
