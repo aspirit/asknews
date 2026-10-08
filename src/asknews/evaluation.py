@@ -8,6 +8,7 @@ import json
 import math
 import sys
 import time
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -193,6 +194,18 @@ def corpus_inventory(conn: Connection) -> dict[str, Any]:
     return {**dict(row), "embeddings": models}
 
 
+class NoEmbedder:
+    """Stands in for an embedder where none may be used; any call is a bug."""
+
+    model_name = "none"
+
+    def embed_documents(self, texts: Sequence[str]) -> list[list[float]]:
+        raise RuntimeError(f"lexical evaluation must not embed ({len(texts)} texts)")
+
+    def embed_query(self, text: str) -> list[float]:
+        raise RuntimeError(f"lexical evaluation must not embed: {text[:40]!r}")
+
+
 def run(args: argparse.Namespace) -> int:
     settings = get_settings()
     path = Path(args.cases) if args.cases else settings.domain_dir / "eval_cases.yaml"
@@ -202,7 +215,9 @@ def run(args: argparse.Namespace) -> int:
         sys.stderr.write(f"invalid evaluation cases: {exc}\n")
         return 2
     today = args.as_of or datetime.now(UTC).date()
-    embedder = embedder_from_settings()
+    # Lexical runs measure the keyword path alone: they must not depend on the
+    # embedding service, not even to name its model in the report.
+    embedder: Embedder = NoEmbedder() if args.mode == "lexical" else embedder_from_settings()
     with connect(autocommit=True) as conn, conn.transaction():
         conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
         corpus = corpus_inventory(conn)

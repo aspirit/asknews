@@ -192,7 +192,9 @@ def test_cli_writes_report_even_when_a_case_fails(
     )
     report = tmp_path / "reports" / "run.json"
     monkeypatch.setenv("DATABASE_URL", test_database_url)
-    monkeypatch.setenv("ASKNEWS_EMBEDDER", "hash")
+    # A remote embedder nobody is listening for: a lexical run must not call it.
+    monkeypatch.setenv("ASKNEWS_EMBEDDER", "remote")
+    monkeypatch.setenv("ASKNEWS_EMBED_URL", "http://127.0.0.1:9")
     get_settings.cache_clear()
     try:
         args = build_parser().parse_args(
@@ -214,7 +216,7 @@ def test_cli_writes_report_even_when_a_case_fails(
         data = json.loads(report.read_text())
         assert data["as_of"] == "2025-10-09"
         assert data["corpus"]["documents"] == 3
-        assert data["embedder"] == "hash-v1"
+        assert data["embedder"] == "none"  # a lexical run uses no embedding model
         assert data["metrics"]["passed"] == 1
         assert len(data["cases_sha256"]) == 64
         assert test_database_url not in report.read_text()
