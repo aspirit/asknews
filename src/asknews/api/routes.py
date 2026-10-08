@@ -44,7 +44,7 @@ def _meeting_out(meeting: meetings.Meeting, lang: str) -> schemas.MeetingOut:
             action=decision.action,
             change_bp=decision.change_bp,
             unanimous=decision.unanimous,
-            dissenters=list(decision.dissenters),
+            dissenters=list(decision.dissenters_in(lang)),
             votes=decision.votes,
         )
         if decision

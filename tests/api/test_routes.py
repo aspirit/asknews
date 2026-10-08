@@ -70,6 +70,7 @@ def test_meetings_bundle_documents_by_date(api: Api) -> None:
     assert meeting["key"] == "fed:20250917"
     assert meeting["decision"]["text"] == "4 to 4-1/4 percent"
     assert (meeting["decision"]["change_bp"], meeting["decision"]["action"]) == (-25, "lower")
+    assert meeting["decision"]["dissenters"] == []  # the fixture statement records no dissent
     status = {p["role"]: p["status"] for p in meeting["parts"]}
     assert status == {
         "statement": "present",
