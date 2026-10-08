@@ -11,6 +11,7 @@ import hashlib
 import json
 import time
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -18,6 +19,9 @@ from urllib.parse import urlsplit
 import httpx
 
 DEFAULT_USER_AGENT = "asknews/0.1 (+https://asknews.jp; archive ingestion)"
+# How long a listing page (an index of releases, a calendar) is trusted
+# before it is fetched again; the documents it points to are cached for good.
+INDEX_MAX_AGE = timedelta(hours=6)
 
 
 class FetchError(Exception):
@@ -62,7 +66,7 @@ class Fetcher:
 
     Responses are cached by URL (plus any request headers that affect the
     answer, such as ``Accept``). A cached response is returned without any
-    network access unless ``refresh=True``.
+    network access unless ``refresh=True`` or it is older than ``max_age``.
     """
 
     def __init__(
@@ -98,12 +102,21 @@ class Fetcher:
         self.close()
 
     def get(
-        self, url: str, *, headers: dict[str, str] | None = None, refresh: bool = False
+        self,
+        url: str,
+        *,
+        headers: dict[str, str] | None = None,
+        refresh: bool = False,
+        max_age: timedelta | None = None,
     ) -> Fetched:
         meta_path, body_path = self._cache_paths(url, headers)
         if not refresh and meta_path.exists() and body_path.exists():
             meta = json.loads(meta_path.read_text("utf-8"))
-            return Fetched(url, meta["status"], body_path.read_bytes(), meta["content_type"], True)
+            age = time.time() - float(meta.get("fetched_at", 0))
+            if max_age is None or age <= max_age.total_seconds():
+                return Fetched(
+                    url, meta["status"], body_path.read_bytes(), meta["content_type"], True
+                )
         response = self._request(url, headers)
         body_path.parent.mkdir(parents=True, exist_ok=True)
         body_path.write_bytes(response.content)

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
+from datetime import timedelta
 from pathlib import Path
 
 import httpx
 import pytest
 
-from asknews.ingest.http import Fetched, Fetcher, FetchError
+from asknews.ingest.http import INDEX_MAX_AGE, Fetched, Fetcher, FetchError
 
 
 class Server:
@@ -44,6 +46,28 @@ def test_second_get_is_served_from_cache(tmp_path: Path) -> None:
     assert (first.from_cache, second.from_cache) == (False, True)
     assert second.text == "hello"
     assert len(server.calls) == 1
+
+
+def test_a_cached_page_older_than_max_age_is_fetched_again(tmp_path: Path) -> None:
+    server = Server()
+    server.respond(
+        "https://example.test/index",
+        httpx.Response(200, text="old", headers={"content-type": "text/plain"}),
+        httpx.Response(200, text="new", headers={"content-type": "text/plain"}),
+    )
+    with fetcher(tmp_path, server) as f:
+        f.get("https://example.test/index")
+        fresh = f.get("https://example.test/index", max_age=timedelta(hours=6))
+        assert (fresh.from_cache, fresh.text) == (True, "old")
+        meta = next(tmp_path.rglob("*.json"))
+        record = json.loads(meta.read_text("utf-8"))
+        record["fetched_at"] -= 7 * 3600
+        meta.write_text(json.dumps(record), "utf-8")
+        stale = f.get("https://example.test/index", max_age=timedelta(hours=6))
+        assert (stale.from_cache, stale.text) == (False, "new")
+        assert f.get("https://example.test/index").text == "new"  # the cache was renewed
+    assert len(server.calls) == 2
+    assert timedelta(hours=6) == INDEX_MAX_AGE
 
 
 def test_refresh_bypasses_cache(tmp_path: Path) -> None:

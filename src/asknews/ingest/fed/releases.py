@@ -30,7 +30,7 @@ from asknews.ingest.htmltext import (
     paragraphs,
     table_rows,
 )
-from asknews.ingest.http import Fetcher, FetchError
+from asknews.ingest.http import INDEX_MAX_AGE, Fetcher, FetchError
 from asknews.ingest.store import (
     Document,
     Segment,
@@ -134,14 +134,14 @@ def _ymd(text: str) -> str:
 
 def list_calendar_releases(fetcher: Fetcher, *, since: int) -> list[Release]:
     """Statements, minutes and projection materials from the FOMC calendar pages."""
-    pages = [fetcher.get(CALENDARS_URL).text]
+    pages = [fetcher.get(CALENDARS_URL, max_age=INDEX_MAX_AGE).text]
     years = {
         int(d[:4]) for page in pages for d in _STATEMENT.findall(page) + _MINUTES.findall(page)
     }
     earliest = min(years, default=datetime.now(UTC).year)
     for year in range(since, earliest):
         try:
-            pages.append(fetcher.get(HISTORICAL_URL.format(year=year)).text)
+            pages.append(fetcher.get(HISTORICAL_URL.format(year=year), max_age=INDEX_MAX_AGE).text)
         except FetchError as exc:
             LOG.warning("no historical page for %s: %s", year, exc)
     releases: dict[tuple[str, str], Release] = {}
@@ -173,7 +173,7 @@ def list_speeches(fetcher: Fetcher, *, since: int) -> list[Release]:
     releases: dict[str, Release] = {}
     for year in range(since, datetime.now(UTC).year + 1):
         try:
-            page = fetcher.get(SPEECHES_INDEX_URL.format(year=year)).text
+            page = fetcher.get(SPEECHES_INDEX_URL.format(year=year), max_age=INDEX_MAX_AGE).text
         except FetchError as exc:
             LOG.warning("no speeches index for %s: %s", year, exc)
             continue

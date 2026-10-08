@@ -34,7 +34,7 @@ from asknews.ingest.boj import (
     pdf_paragraphs,
 )
 from asknews.ingest.htmltext import content_window, paragraphs
-from asknews.ingest.http import Fetcher, FetchError
+from asknews.ingest.http import INDEX_MAX_AGE, Fetcher, FetchError
 from asknews.ingest.pdf import pdf_text
 from asknews.ingest.store import (
     Document,
@@ -108,7 +108,7 @@ def list_releases(fetcher: Fetcher, *, since: int) -> list[Item]:
     items: list[Item] = []
     for year in range(since, datetime.now(UTC).year + 1):
         try:
-            page = fetcher.get(RELEASES_INDEX_URL.format(year=year)).text
+            page = fetcher.get(RELEASES_INDEX_URL.format(year=year), max_age=INDEX_MAX_AGE).text
         except FetchError as exc:
             LOG.warning("no releases index for %s: %s", year, exc)
             continue
@@ -141,7 +141,7 @@ def list_minutes_and_opinions(fetcher: Fetcher, *, since: int) -> list[Item]:
     for year in range(since, datetime.now(UTC).year + 1):
         for kind, template, pattern in sources:
             try:
-                page = fetcher.get(template.format(year=year)).text
+                page = fetcher.get(template.format(year=year), max_age=INDEX_MAX_AGE).text
             except FetchError as exc:
                 LOG.warning("no %s index for %s: %s", kind, year, exc)
                 continue
@@ -163,7 +163,7 @@ def list_minutes_and_opinions(fetcher: Fetcher, *, since: int) -> list[Item]:
 
 
 def list_outlook(fetcher: Fetcher, *, since: int) -> list[Item]:
-    page = fetcher.get(OUTLOOK_INDEX_URL).text
+    page = fetcher.get(OUTLOOK_INDEX_URL, max_age=INDEX_MAX_AGE).text
     items: list[Item] = []
     for path, text in _CELL_LINK.findall(page) + re.findall(
         r"<a href=\"([^\"]+)\"[^>]*>(.*?)</a>", page, re.S
@@ -183,7 +183,7 @@ def list_speeches(fetcher: Fetcher, *, since: int) -> list[Item]:
     items: list[Item] = []
     for year in range(since, datetime.now(UTC).year + 1):
         try:
-            page = fetcher.get(SPEECHES_INDEX_URL.format(year=year)).text
+            page = fetcher.get(SPEECHES_INDEX_URL.format(year=year), max_age=INDEX_MAX_AGE).text
         except FetchError as exc:
             LOG.warning("no speeches index for %s: %s", year, exc)
             continue

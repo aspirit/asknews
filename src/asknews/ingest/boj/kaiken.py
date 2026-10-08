@@ -32,7 +32,7 @@ from asknews.ingest.boj import (
     strip_page_numbers,
 )
 from asknews.ingest.htmltext import content_window, paragraphs
-from asknews.ingest.http import Fetcher, FetchError
+from asknews.ingest.http import INDEX_MAX_AGE, Fetcher, FetchError
 from asknews.ingest.pdf import pdf_text
 from asknews.ingest.store import (
     Document,
@@ -92,7 +92,7 @@ def list_press_conferences(fetcher: Fetcher, *, since: int = FIRST_YEAR) -> list
     out: list[Listing] = []
     for year in range(since, datetime.now(UTC).year + 1):
         try:
-            page = fetcher.get(INDEX_URL.format(year=year)).text
+            page = fetcher.get(INDEX_URL.format(year=year), max_age=INDEX_MAX_AGE).text
         except FetchError as exc:
             LOG.warning("no press conference index for %s: %s", year, exc)
             continue

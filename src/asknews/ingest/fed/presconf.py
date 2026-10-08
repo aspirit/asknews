@@ -20,7 +20,7 @@ from asknews.db.connection import Connection, connect
 from asknews.domain_config import SpeakerDirectory, speakers
 from asknews.ingest.fed import BASE_URL, INSTITUTION
 from asknews.ingest.fed.captions import repair_cues
-from asknews.ingest.http import Fetched, Fetcher, FetchError
+from asknews.ingest.http import INDEX_MAX_AGE, Fetched, Fetcher, FetchError
 from asknews.ingest.pdf import pdf_text
 from asknews.ingest.store import (
     Document,
@@ -102,11 +102,11 @@ def list_pages(fetcher: Fetcher, *, since: int = FIRST_YEAR) -> dict[str, str]:
         for path, date in _PAGE_LINK.findall(markup):
             pages.setdefault(date, BASE_URL + path)
 
-    collect(fetcher.get(CALENDARS_URL).text)
+    collect(fetcher.get(CALENDARS_URL, max_age=INDEX_MAX_AGE).text)
     earliest_listed = min((int(d[:4]) for d in pages), default=datetime.now(UTC).year)
     for year in range(since, earliest_listed):
         try:
-            collect(fetcher.get(HISTORICAL_URL.format(year=year)).text)
+            collect(fetcher.get(HISTORICAL_URL.format(year=year), max_age=INDEX_MAX_AGE).text)
         except FetchError as exc:
             LOG.warning("no historical page for %s: %s", year, exc)
     return {date: pages[date] for date in sorted(pages) if int(date[:4]) >= since}
