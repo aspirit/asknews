@@ -3,7 +3,13 @@ from __future__ import annotations
 import pytest
 
 from asknews.answer.llm import Completion, ScriptedLLM
-from asknews.budget import GENERATION_SHARE, generation_allowed, record_usage, spent_last_day
+from asknews.budget import (
+    GENERATION_SHARE,
+    PENDING_TTL,
+    generation_allowed,
+    record_usage,
+    spent_last_day,
+)
 from asknews.db.connection import Connection
 from asknews.db.migrate import migrate
 from asknews.generate.summaries import summarize_pending
@@ -33,6 +39,18 @@ def test_spend_counts_answers_and_generation_together(db: Connection) -> None:
     assert generation_allowed(db, 2.0)  # 0.60 spent, share is 1.00
     assert not generation_allowed(db, 1.0)  # share is 0.50
     assert GENERATION_SHARE == 0.5
+
+
+def test_a_pending_request_holds_its_reservation_for_a_while(db: Connection) -> None:
+    migrate(db)
+    db.execute(
+        "INSERT INTO ask_requests (lang, question, status, cost_usd, asked_at) VALUES "
+        "('en', 'q', 'pending', 0.25, now()), "
+        "('en', 'q', 'pending', 0.25, now() - interval '11 minutes'), "
+        "('en', 'q', 'answered', 0.10, now() - interval '11 minutes')"
+    )
+    assert spent_last_day(db) == pytest.approx(0.35)
+    assert PENDING_TTL.total_seconds() == 600
 
 
 def test_generation_stops_at_its_share_of_the_budget(db: Connection) -> None:

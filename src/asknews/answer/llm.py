@@ -36,6 +36,8 @@ class Completion:
 
 
 class LLM(Protocol):
+    model: str
+
     def complete(self, *, system: str, user: str, max_tokens: int) -> Completion: ...
 
 
