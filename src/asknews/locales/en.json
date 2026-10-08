@@ -136,7 +136,20 @@
   "inst.mof.short": "MOF",
   "inst.fsa.short": "FSA",
   "inst.boe.short": "BoE",
-  "date.months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  "date.months": [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec"
+  ],
   "date.full": "{mon} {d}, {y}",
   "date.short": "{mon} {d}",
   "date.month": "{mon} {y}",
@@ -146,27 +159,90 @@
   "about.p": "AskNews answers questions using only what central banks and finance ministries have officially published: policy statements, press conferences, minutes, speeches and outlook reports. The core archive is the Federal Reserve in English and the Bank of Japan in Japanese.",
   "about.how_h": "How it answers",
   "about.how": [
-    ["Ask", "Type in English or Japanese, about a decision, a vote, a forecast or something said at a press conference."],
-    ["Retrieve", "AskNews searches the archive of official releases and transcripts, by words and by meaning, and reads the passages that match."],
-    ["Cite", "Every sentence links to its release. Quotes from video carry a timestamp that opens the player at that moment."]
+    [
+      "Ask",
+      "Type in English or Japanese, about a decision, a vote, a forecast or something said at a press conference."
+    ],
+    [
+      "Retrieve",
+      "AskNews searches the archive of official releases and transcripts, by words and by meaning, and reads the passages that match."
+    ],
+    [
+      "Cite",
+      "Every sentence links to its release. Quotes from video carry a timestamp that opens the player at that moment."
+    ]
   ],
   "about.rules_h": "Principles",
   "about.rules": [
-    ["Sources first", "Every claim is tied to an official release. If the archive does not say it, the answer does not either."],
-    ["Declines outside the archive", "Stock picks, market forecasts and general news get a plain note on what is covered, not a guess."],
-    ["Two languages", "Interface and answers in English or Japanese. Releases stay in their original language, marked with a badge; any translated title is labelled."]
+    [
+      "Sources first",
+      "Every claim is tied to an official release. If the archive does not say it, the answer does not either."
+    ],
+    [
+      "Declines outside the archive",
+      "Stock picks, market forecasts and general news get a plain note on what is covered, not a guess."
+    ],
+    [
+      "Two languages",
+      "Interface and answers in English or Japanese. Releases stay in their original language, marked with a badge; any translated title is labelled."
+    ]
   ],
   "about.sources_h": "Data sources and terms",
-  "about.sources_cols": ["Source", "What is used", "Language", "Terms"],
+  "about.sources_cols": [
+    "Source",
+    "What is used",
+    "Language",
+    "Terms"
+  ],
   "about.sources": [
-    ["Federal Reserve Board", "Statements, press conferences (video, captions and transcript), minutes, speeches", "EN", "U.S. government work, public domain; cited as the source"],
-    ["Bank of Japan", "Statements, press conferences and their summaries, minutes, Summary of Opinions, Outlook Report, speeches", "JA", "Reproduction permitted with attribution for non-commercial use; nothing is altered"],
-    ["European Central Bank", "Press releases", "EN", "Free use with the ECB cited as the source"],
-    ["Bank for International Settlements", "Central bankers' speeches (feed descriptions)", "EN", "Non-commercial redistribution with the BIS cited"],
-    ["U.S. Bureau of Economic Analysis", "Releases", "EN", "U.S. government work, public domain"],
-    ["Ministry of Finance, Japan", "Press conferences and policy releases", "JA", "Public Data License 1.0, attribution and a note on processing"],
-    ["Financial Services Agency, Japan", "Press conferences and releases", "JA", "Public Data License 1.0, attribution and a note on processing"],
-    ["Bank of England", "Titles and links only", "EN", "Terms allow no republishing of excerpts"]
+    [
+      "Federal Reserve Board",
+      "Statements, press conferences (video, captions and transcript), minutes, speeches",
+      "EN",
+      "U.S. government work, public domain; cited as the source"
+    ],
+    [
+      "Bank of Japan",
+      "Statements, press conferences and their summaries, minutes, Summary of Opinions, Outlook Report, speeches",
+      "JA",
+      "Reproduction permitted with attribution for non-commercial use; nothing is altered"
+    ],
+    [
+      "European Central Bank",
+      "Press releases",
+      "EN",
+      "Free use with the ECB cited as the source"
+    ],
+    [
+      "Bank for International Settlements",
+      "Central bankers' speeches (feed descriptions)",
+      "EN",
+      "Non-commercial redistribution with the BIS cited"
+    ],
+    [
+      "U.S. Bureau of Economic Analysis",
+      "Releases",
+      "EN",
+      "U.S. government work, public domain"
+    ],
+    [
+      "Ministry of Finance, Japan",
+      "Press conferences and policy releases",
+      "JA",
+      "Public Data License 1.0, attribution and a note on processing"
+    ],
+    [
+      "Financial Services Agency, Japan",
+      "Press conferences and releases",
+      "JA",
+      "Public Data License 1.0, attribution and a note on processing"
+    ],
+    [
+      "Bank of England",
+      "Titles and links only",
+      "EN",
+      "Terms allow no republishing of excerpts"
+    ]
   ],
   "about.purpose_h": "Purpose and scope",
   "about.purpose_p": "AskNews is a demonstration and research project, not a commercial service. Everything it holds is the official, publicly released communication of central banks and finance ministries, used under each publisher's terms: with attribution, unaltered, and non-commercially. The pipeline is not tied to this field. The same ingestion, retrieval and answering can index the public publications of any sector and answer questions over them with the same citations.",
@@ -174,10 +250,26 @@
   "about.ai_h": "How generated content is labelled",
   "about.ai_p": "Anything AskNews generates carries the same AI mark. Official text, such as statements, transcripts and report sections, is shown as published and is never rewritten.",
   "about.ai_list": [
-    ["ai.summary", "Summaries of releases and the summary line in lists"],
-    ["ai.brief", "Daily and meeting briefs"],
-    ["ai.title", "Meeting titles in the timeline"],
-    ["ai.extracted", "Policy decisions extracted from a meeting"],
-    ["ai.translation", "Titles shown in a language other than the original"]
-  ]
+    [
+      "ai.summary",
+      "Summaries of releases and the summary line in lists"
+    ],
+    [
+      "ai.brief",
+      "Daily and meeting briefs"
+    ],
+    [
+      "ai.title",
+      "Meeting titles in the timeline"
+    ],
+    [
+      "ai.extracted",
+      "Policy decisions extracted from a meeting"
+    ],
+    [
+      "ai.translation",
+      "Titles shown in a language other than the original"
+    ]
+  ],
+  "ask.close": "Close"
 }

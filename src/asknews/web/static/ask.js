@@ -90,7 +90,7 @@
     var open = el("a", { class: "btn", href: PREFIX + c.url, text: (c.start_sec != null ? S.open_at + " " + fmtTime(c.start_sec) : S.open_doc) + " \u2192" });
     var original = el("a", { class: "btn ghost", href: c.source_url, target: "_blank", rel: "noopener", text: c.source_url.split("/")[2] + " \u2197" });
     var drawer = el("div", { class: "drawer", id: "drawer", role: "dialog" }, [
-      el("div", { class: "top" }, [el("span", { class: "kick", text: S.sources }), el("button", { type: "button", "aria-label": "Close", text: "\u00d7" })]),
+      el("div", { class: "top" }, [el("span", { class: "kick", text: S.sources }), el("button", { type: "button", "aria-label": S.close, text: "\u00d7" })]),
       el("div", { class: "bd" }, [
         el("div", { class: "meta", style: "margin-bottom:0" }, [el("b", { text: S.inst[c.institution] || c.institution }), el("span", { text: S.kinds[c.kind] || c.kind }), el("span", { text: fmtDate(c.published_at) })]),
         el("h3", { text: c.title }),
