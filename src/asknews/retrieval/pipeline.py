@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from typing import Any
+from datetime import date
+from typing import Any, Literal
 
 from asknews.db.connection import Connection
 from asknews.domain_config import SpeakerDirectory
@@ -22,6 +23,7 @@ from asknews.retrieval.query import Query, analyse
 # Without a domain mention, the question is still answered when lexical
 # search finds passages matching this many distinct terms or a quoted phrase.
 STRONG_LEXICAL_TERMS = 2
+RetrievalMode = Literal["hybrid", "lexical", "dense"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,12 +41,16 @@ def retrieve(
     *,
     directory: SpeakerDirectory,
     vocab: Vocabulary,
+    mode: RetrievalMode = "hybrid",
+    today: date | None = None,
 ) -> Retrieval:
-    query = analyse(question, directory, vocab=vocab)
+    if mode not in ("hybrid", "lexical", "dense"):
+        raise ValueError(f"unknown retrieval mode: {mode}")
+    query = analyse(question, directory, vocab=vocab, today=today)
     named = mentions_domain(query, vocab, directory)
     found = paths.lexical(conn, query)
     lexical = found.candidates
-    vector = embedder.embed_query(query.text) if (named or lexical) else None
+    vector = embedder.embed_query(query.text) if mode != "lexical" and (named or lexical) else None
     semantic = paths.semantic(conn, embedder, query, vector=vector) if vector else []
     recent: list[paths.Candidate] = []
     if query.recency and query.window is not None:
@@ -52,11 +58,12 @@ def retrieve(
         # talk about "the most recent meeting" would still crowd out the latest
         # material, so the window is also searched on its own.
         within = replace(query, window=replace(query.window, hard=True))
-        recent = paths.lexical(conn, within).candidates
-        if named or lexical or recent:
+        recent_lexical = paths.lexical(conn, within).candidates
+        recent = recent_lexical if mode != "dense" else []
+        if mode != "lexical" and (named or lexical or recent_lexical):
             vector = vector if vector is not None else embedder.embed_query(query.text)
             recent += paths.semantic(conn, embedder, within, vector=vector)
-    merged = merge_candidates(recent, lexical, semantic)
+    merged = merge_candidates(recent, lexical if mode != "dense" else [], semantic)
     passages = paths.hydrate(conn, [c.segment_id for c in merged])
     citations = fuse(merged, passages, query)
     questions = [c.passage.segment_id for c in citations if c.passage.speaker == QUESTION_SPEAKER]
@@ -79,6 +86,7 @@ def retrieve(
         or found.strict_fulltext >= 1
     )
     meta = {
+        "mode": mode,
         "lang": query.lang,
         "terms": list(query.terms),
         "phrases": list(query.phrases),
