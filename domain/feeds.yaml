@@ -5,7 +5,9 @@
 #   none         title and link only (publisher terms do not allow excerpts)
 # `include`/`exclude` are regular expressions matched against the link;
 # `title_strip` lists expressions removed from titles (category prefixes,
-# stock phrases).
+# stock phrases). `event` names the field that carries the date an item is
+# about when that is not the posting date (kept in meta, the feed's date
+# stays the publication date): `title` or `description`.
 sources:
   - code: ecb-press
     institution: ecb
@@ -21,6 +23,7 @@ sources:
     lang: en
     kind: speech
     body: description
+    event: description   # "Speech by ..., Frankfurt, 1 October 2026"
   - code: bea-news
     institution: bea
     url: https://apps.bea.gov/rss/rss.xml
@@ -37,6 +40,7 @@ sources:
     include: ["/public_relations/", "/policy/", "/international_policy/", "/budget/", "/tax_policy/"]
     exclude: ["/jgbs/auction/", "/jgbs/topics/"]
     drop: ["トップページ", "X ポスト", "ツイート"]
+    event: title         # press conference summaries are titled with their day
   - code: fsa-news
     institution: fsa
     url: https://www.fsa.go.jp/fsaNewsListAll_rss2.xml
@@ -48,9 +52,11 @@ sources:
     drop: ["ホーム", "Tweet", "Note: This page is machine translated"]
     # Titles arrive as "category,title について掲載しました。"
     title_strip: ["^[^,，]{1,8}[,，]", "について(?:掲載|公表)しました。$"]
+    event: title
   - code: boe-news
     institution: boe
     url: https://www.bankofengland.co.uk/rss/news
     lang: en
     kind: release
     body: none
+    event: title         # minutes are titled with the meeting's day

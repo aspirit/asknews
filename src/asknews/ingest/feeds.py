@@ -56,6 +56,11 @@ class Source:
     exclude: tuple[str, ...] = ()
     drop: tuple[str, ...] = ()
     title_strip: tuple[str, ...] = ()  # regular expressions removed from titles
+    # Where the date an item is about is named, when that is not the posting
+    # date: "title" (a conference summary titled with its day) or
+    # "description" (a speech library naming the day it was given). None
+    # means the item is about the day it was posted.
+    event: str | None = None
 
     def accepts(self, link: str) -> bool:
         if self.include and not any(re.search(p, link) for p in self.include):
@@ -133,13 +138,9 @@ def _dates_in(text: str) -> list[date]:
 
 
 def event_date(text: str, *, posted: date) -> date | None:
-    """The date an item is about, when its title or opening text names one.
-
-    Feeds date items by when they were posted: a press conference summary
-    appears days after the conference, and a speech enters the BIS library
-    after it was given. The first date named in the text that falls within
-    the previous four months is the item's own date.
-    """
+    """The date an item is about, when the given text names one: the first
+    date within the previous four months. Called only on the field a source
+    designates, since a body may mention any number of earlier dates."""
     for when in _dates_in(text):
         if posted - _EVENT_LOOKBACK <= when <= posted:
             return when
@@ -164,9 +165,18 @@ def load_sources(path: Path) -> list[Source]:
                 exclude=tuple(str(p) for p in item.get("exclude") or ()),
                 drop=tuple(str(p) for p in item.get("drop") or ()),
                 title_strip=tuple(str(p) for p in item.get("title_strip") or ()),
+                event=_event_field(item.get("event")),
             )
         )
     return sources
+
+
+def _event_field(value: object) -> str | None:
+    if value is None:
+        return None
+    if value not in ("title", "description"):
+        raise ValueError(f"event must be 'title' or 'description', not {value!r}")
+    return str(value)
 
 
 def _text(element: ET.Element | None) -> str:
@@ -303,13 +313,16 @@ def ingest_entry(
         meta["creator"] = entry.creator
     if origin != "page":
         meta["text"] = origin
-    posted = entry.published or datetime.now(UTC)
-    own_date = event_date(entry.title + "\n" + " ".join(items)[:600], posted=posted.date())
-    published_at = posted
-    if own_date is not None and own_date != posted.date():
-        # Nine in the morning UTC keeps the calendar date in every publisher's zone.
-        published_at = datetime(own_date.year, own_date.month, own_date.day, 9, tzinfo=UTC)
-        meta["posted"] = posted.date().isoformat()
+    # The feed's own date is the publication date. A date the item is about
+    # (the day of a conference or a speech) is kept beside it, never in its place.
+    published_at = entry.published or datetime.now(UTC)
+    if entry.published is None:
+        meta["undated"] = True
+    if source.event:
+        named = entry.title if source.event == "title" else entry.description
+        when = event_date(named, posted=published_at.date())
+        if when is not None and when != published_at.date():
+            meta["event_date"] = when.isoformat()
     document_id = upsert_document(
         conn,
         Document(

@@ -140,7 +140,9 @@ def test_ingest_entry_from_page_and_title_only(db: Connection, tmp_path: Path) -
     assert row is not None
     assert (row["body"], row["meta"]["text"], titled.segments) == (None, "title_only", 0)
 
-    bis = feeds.Source("bis-speeches", "bis", "u", "en", "speech", "description")
+    bis = feeds.Source(
+        "bis-speeches", "bis", "u", "en", "speech", "description", event="description"
+    )
     blurb = feeds.Entry(
         "Monetary policy in a world of shocks",
         "https://example.test/review/r261007a.htm",
@@ -153,5 +155,25 @@ def test_ingest_entry_from_page_and_title_only(db: Connection, tmp_path: Path) -
     ).fetchone()
     assert row is not None
     assert row["meta"]["text"] == "description"  # never summarised as if it were the speech
-    assert row["published_at"].date() == date(2026, 10, 1)  # the day of the speech
-    assert row["meta"]["posted"] == "2026-10-07"
+    assert row["published_at"].date() == date(2026, 10, 7)  # when the library posted it
+    assert row["meta"]["event_date"] == "2026-10-01"  # the day of the speech, kept beside it
+
+    # A body that mentions an earlier decision does not re-date a release.
+    ecb_entry = feeds.Entry(
+        "Monetary policy decisions",
+        "https://example.test/press/2026/html/decisions.en.html",
+        datetime(2026, 10, 8, tzinfo=UTC),
+        description="Following our decision of September 16, 2026, the Governing Council today...",
+    )
+    undated_rule = feeds.ingest_entry(db, fetcher, bis, ecb_entry)
+    row = db.execute(
+        "SELECT published_at, meta FROM documents WHERE id = %s", (undated_rule.document_id,)
+    ).fetchone()
+    assert row is not None
+    assert row["published_at"].date() == date(2026, 10, 8)
+    assert row["meta"]["event_date"] == "2026-09-16"  # named in the designated field
+    plain = feeds.Source("ecb-press", "ecb", "u", "en", "release", "description")
+    kept = feeds.ingest_entry(db, fetcher, plain, ecb_entry)
+    row = db.execute("SELECT meta FROM documents WHERE id = %s", (kept.document_id,)).fetchone()
+    assert row is not None
+    assert "event_date" not in row["meta"]  # no rule for this source: the body is not a date
