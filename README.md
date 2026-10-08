@@ -74,11 +74,26 @@ and are skipped when it is unset.
 | `asknews daily` | All of the above, incrementally, for a scheduled run |
 | `asknews eval` | Retrieval regression cases in `domain/eval_cases.yaml` |
 
+## HTTP API
+
+The pages are server-rendered; the JSON API behind them is small.
+
+| Endpoint | What it returns |
+|---|---|
+| `POST /api/ask` with `{"q": "..."}` | An answer with numbered citations, or why there is none (`out_of_scope`, `no_sources`, `rate`, `budget`). A POST so that a crawler following a link can never run a question |
+| `GET /api/ask/citations?q=` | The passages a question would be answered from, without calling the model |
+| `GET /api/documents`, `/api/documents/{id}` | Catalogue entries and one document with its segments |
+| `GET /api/meetings` | Policy meetings with their statement, minutes, decision and votes |
+| `GET /api/rankings?days=` | Speakers, publishers and topics over a period |
+| `GET /api/briefs`, `/api/briefs/{id}` | Daily and meeting briefs |
+
+The OpenAPI document is at `/api/openapi.json` and the interactive reference at `/api/docs`.
+
 ## Configuration
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `DATABASE_URL` | required | PostgreSQL with pgvector |
+| `DATABASE_URL` | the local compose database | PostgreSQL with pgvector |
 | `ASKNEWS_EMBEDDER` | `hash` | `hash` (stand-in), `remote` (embedding service), `local` (in-process model) |
 | `ASKNEWS_EMBED_URL` | `http://127.0.0.1:8201` | Embedding service when `remote` |
 | `ASKNEWS_EMBED_MODEL` | `google/embeddinggemma-300m` | Model for `local` and for the service; `intfloat/multilingual-e5-base` needs no token |

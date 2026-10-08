@@ -73,15 +73,15 @@ A hub page with five sections, each also reachable directly.
 | --- | --- | --- |
 | Latest | Newest twenty releases across all publishers; filters by publisher and kind; no date-range controls | documents |
 | Briefs | Daily brief for each day with at least one release, and a meeting brief after each FOMC meeting and Monetary Policy Meeting; each brief cites the documents it draws on | generated, labelled |
-| Videos | Every press conference, filterable by publisher and year; each card shows date, speaker, duration and whether the transcript has timestamps | media, documents |
+| Videos | Every press conference, filterable by publisher; each card shows date, speaker, duration and whether the transcript has timestamps | media, documents |
 | Rankings | Speakers, publishers and topics (below) | computed from documents and segments |
 | Meetings | Timeline of policy meetings of both central banks; each meeting bundles its statement, press conference, minutes and projections or outlook report, with a generated title and summary and the extracted policy decision (rate, change in basis points, vote); a document not in the bundle is marked scheduled, not indexed, or not published for that meeting | meetings derived from documents by date |
 
 **Rankings** are three boards computed from published material:
 
 - **Speakers:** speeches given, press conferences held, minutes spoken, and
-  pickups by the BIS speech library; selectable period (90 days, one year,
-  all time).
+  pickups by the BIS speech library; selectable period (30 days, 90 days,
+  one year, all time).
 - **Publishers:** releases in the last 30 days broken down by kind.
 - **Topics:** terms whose frequency in recent documents rose most against the
   previous period.
@@ -108,7 +108,8 @@ to the original.
 What the site is, how a question is answered in three steps, the principles
 (sources first, declines out of scope, two languages), a table of data
 sources with their reuse terms, the labelling policy for generated content,
-and a link to the repository.
+and a note on purpose: the archive is a demonstration of the pipeline, which
+could index any field's public documents.
 
 ## Data sources
 
