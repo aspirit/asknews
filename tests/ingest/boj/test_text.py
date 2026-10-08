@@ -23,6 +23,7 @@ def test_normalise_folds_fullwidth_digits_and_letter_spacing() -> None:
     assert normalise("0． 75％程度") == "0.75%程度"  # a spaced-out decimal point
     assert normalise("（問）") == "（問）"  # Japanese punctuation is left alone
     assert normalise("202 6 年 7 月 3 1 日") == "2026年7月31日"
+    assert normalise("2.4 2.7 1.9") == "2.4 2.7 1.9"  # a forecast table row keeps its columns
 
 
 def test_dates() -> None:

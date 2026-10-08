@@ -41,8 +41,10 @@ _FOLD[0x00A0] = " "
 _DOTTED_NUMBER = re.compile(r"(?<=\d)[．，](?=\d)|(?<=\d)． (?=\d)")
 # A line holding nothing but a page number, as PDF text layers carry them.
 _PAGE_NUMBER_LINE = re.compile(r"(?m)^[ \t]*\d{1,3}[ \t]*$\n?")
-# PDF layouts also scatter single spaces inside numbers and dates ("202 6 年 7 月").
-_SPACED_NUMBER = re.compile(r"(?<=\d) (?=\d)|(?<=\d) (?=[年月日%])|(?<=[年月]) (?=\d)")
+# PDF layouts also scatter single spaces inside dates ("202 6 年 7 月 3 1 日").
+# Digits are joined only when a date word follows: a row of figures in a
+# forecast table ("2.4 2.7 1.9") must keep its spaces.
+_SPACED_NUMBER = re.compile(r"(?<=\d) (?=\d+ ?[年月日%])|(?<=\d) (?=[年月日%])|(?<=[年月]) (?=\d)")
 
 
 def normalise(text: str) -> str:
