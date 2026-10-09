@@ -13,6 +13,13 @@ Finance and Financial Services Agency. Ask a question in either language and
 get an answer built only from retrieved passages, each one cited back to the
 official document or to a moment in the video.
 
+AskNews is the public showcase edition of a retrieval and answering system I
+run in production. The full system holds a larger private corpus and does
+more, under a confidentiality agreement that keeps it private; this edition
+rebuilds part of it on public Federal Reserve and Bank of Japan materials. It
+demonstrates English/Japanese RAG, hybrid search, source citations and
+timestamp links into the supported videos.
+
 ## What it does
 
 - **Ask.** Hybrid retrieval (full text, Japanese substring matching, exact

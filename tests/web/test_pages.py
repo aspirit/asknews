@@ -169,3 +169,9 @@ def test_ask_and_about_pages(api: Api) -> None:
     assert "Data sources and terms" in about
     assert client.get("/static/app.css").status_code == 200
     assert client.get("/static/fonts/fonts.css").status_code == 200
+
+
+def test_about_states_what_the_showcase_is(api: Api) -> None:
+    client, _, _ = api
+    assert "public showcase edition" in client.get("/about").text
+    assert "公開デモ版" in client.get("/ja/about").text  # "public demo edition"
